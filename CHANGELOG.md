@@ -6,6 +6,17 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [Unreleased] — Türkçe sürüm
+
+- Tam Türkçe arayüz ve dokümanlar (README, kurulum, güncelleme, sorun giderme, kurulum rehberleri, katkı rehberi, llms.txt)
+- OpenCLI, erişilemeyen siteler (giriş duvarı, Cloudflare/captcha, boş JavaScript sayfaları, 401/403/429) için genel yedek yol oldu
+- Yeni Chrome kurulum rehberi: [docs/opencli-chrome-kurulum.md](docs/opencli-chrome-kurulum.md)
+- Yeni başlayanlar için blog yazısı: [docs/blog-agent-reach-nedir.md](docs/blog-agent-reach-nedir.md)
+- Çince SKILL.md → SKILL_zh.md; varsayılan skill dili artık Türkçe
+- Çince README → [docs/README_zh.md](docs/README_zh.md); kurulum linkleri ecinaro/brainlab-agent-reach çatalına yönlendirildi
+
+---
+
 ## [1.3.1] - 2026-03-27
 
 ### 🐛 Bug Fixes / 修复

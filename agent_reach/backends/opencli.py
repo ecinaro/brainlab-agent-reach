@@ -97,7 +97,7 @@ def _unpacked_extension_files_present() -> bool:
     """True when OpenCLI's unpacked extension source contains a manifest.
 
     ``~/.opencli/extension`` is downloaded source, not browser state.  Its
-    existence never proves the user completed “Load unpacked” or left the
+    existence never proves the user completed "Load unpacked" or left the
     extension enabled.
     """
     unpacked = os.path.expanduser(_OPENCLI_UNPACKED_EXTENSION)
@@ -141,7 +141,7 @@ def opencli_status(timeout: int = 10) -> OpenCLIStatus:
             installed=True,
             broken=True,
             hint=(
-                "opencli 命令存在但无法执行（node 环境损坏），重装：\n"
+                "opencli komutu var ama çalıştırılamıyor (node ortamı bozuk), yeniden kur:\n"
                 f"  npm install -g {OPENCLI_PACKAGE}"
             ),
         )
@@ -160,21 +160,23 @@ def opencli_status(timeout: int = 10) -> OpenCLIStatus:
         st.unpacked_extension_files = _unpacked_extension_files_present()
         if st.extension_installed:
             st.hint = (
-                "检测到 Chrome/Edge 的 OpenCLI 扩展文件，但扩展当前未连接；"
-                "仅凭磁盘文件无法确认它已加载或启用。\n"
-                "  打开浏览器扩展页确认 OpenCLI 已启用，再运行一个 opencli 命令验证"
+                "Chrome/Edge'de OpenCLI eklenti dosyaları bulundu, ancak eklenti şu an "
+                "bağlı değil; yalnızca diskteki dosyalar yüklendiğini veya etkin olduğunu kanıtlamaz.\n"
+                "  Tarayıcının eklentiler sayfasında OpenCLI'ın etkin olduğunu kontrol et, "
+                "sonra doğrulamak için bir opencli komutu çalıştır"
             )
         elif st.unpacked_extension_files:
             st.hint = (
-                "检测到 ~/.opencli/extension/ 源文件，但文件存在不代表已经在"
-                " Chrome/Edge 中“加载已解压的扩展程序”。\n"
-                "  请在浏览器扩展页加载并启用该目录，再运行一个 opencli 命令验证"
+                "~/.opencli/extension/ kaynak dosyaları bulundu, ancak dosyaların varlığı "
+                "Chrome/Edge'de \"Paketlenmemiş öğe yükle\" yapıldığı anlamına gelmez.\n"
+                "  Tarayıcının eklentiler sayfasında bu klasörü yükleyip etkinleştir, "
+                "sonra doğrulamak için bir opencli komutu çalıştır"
             )
         else:
             st.hint = (
-                "OpenCLI 已安装，但未检测到已连接的浏览器扩展。\n"
-                f"  1. 安装并启用扩展（Chrome/Edge）：{OPENCLI_EXTENSION_URL}\n"
-                "  2. 保持浏览器打开，再运行一个 opencli 命令验证"
+                "OpenCLI kurulu, ancak bağlı bir tarayıcı eklentisi bulunamadı.\n"
+                f"  1. Eklentiyi kur ve etkinleştir (Chrome/Edge): {OPENCLI_EXTENSION_URL}\n"
+                "  2. Tarayıcıyı açık tut, sonra doğrulamak için bir opencli komutu çalıştır"
             )
     return st
 
@@ -182,15 +184,15 @@ def opencli_status(timeout: int = 10) -> OpenCLIStatus:
 def opencli_summary(st: OpenCLIStatus) -> str:
     """One-line state description for channel messages / install output."""
     if not st.installed:
-        return "OpenCLI 未安装"
+        return "OpenCLI kurulu değil"
     if st.broken:
-        return "OpenCLI 无法执行（node 环境损坏）"
+        return "OpenCLI çalıştırılamıyor (node ortamı bozuk)"
     if st.extension_connected:
-        return f"OpenCLI 可用（浏览器登录态，v{st.version}）"
+        return f"OpenCLI kullanılabilir (tarayıcı oturumu, v{st.version})"
     if st.extension_installed:
-        return "OpenCLI 已安装，检测到扩展文件但当前未连接（无法确认已加载）"
+        return "OpenCLI kurulu, eklenti dosyaları bulundu ama şu an bağlı değil (yüklendiği doğrulanamadı)"
     if st.unpacked_extension_files:
-        return "OpenCLI 已安装，检测到 unpacked 源文件但尚未确认浏览器已加载"
+        return "OpenCLI kurulu, unpacked kaynak dosyaları bulundu ama tarayıcıya yüklendiği henüz doğrulanmadı"
     if st.daemon_running:
-        return "OpenCLI 已安装，等待 Chrome 扩展安装"
-    return "OpenCLI 已安装（daemon 未运行，使用时自动启动；需 Chrome 扩展）"
+        return "OpenCLI kurulu, Chrome eklentisinin kurulması bekleniyor"
+    return "OpenCLI kurulu (daemon çalışmıyor, kullanımda otomatik başlar; Chrome eklentisi gerekli)"

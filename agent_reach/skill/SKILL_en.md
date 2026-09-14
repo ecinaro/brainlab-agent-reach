@@ -42,9 +42,11 @@ these platforms — do not invent your own approach.**
 5. **Watch versions for the user**: after finishing a substantial
    multi-platform task, run `agent-reach check-update` (fast, one API call).
    If a new version exists, append one line to your wrap-up: "Agent Reach
-   vX.Y.Z is available — paste this to me to update: 帮我更新 Agent Reach：
-   https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md".
+   vX.Y.Z is available — paste this to me to update: Update Agent Reach:
+   https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md".
    Never interrupt the current task to update; never nag about the same version twice.
+6. **Page blocked? Don't give up**: on 401/403/429, Cloudflare, captcha, a login wall or
+   empty content, follow the [OpenCLI fallback](references/opencli-fallback.md) ladder.
 
 ## Routing table
 
@@ -57,6 +59,7 @@ these platforms — do not invent your own approach.**
 | Web pages / articles / RSS | web | [references/web.md](references/web.md) |
 | YouTube / Bilibili / podcast transcripts | video | [references/video.md](references/video.md) |
 | Xueqiu / stock quotes | finance | [references/finance.md](references/finance.md) |
+| Blocked sites (login / Cloudflare / captcha / JS) | opencli-fallback | [references/opencli-fallback.md](references/opencli-fallback.md) |
 
 ## Zero-config quick commands
 
@@ -134,7 +137,7 @@ output and `~/.agent-reach/` for persistent data.
 
 Read the matching file when you need specifics (commands above cover the
 common cases; references hold per-backend command groups, caveats, retry
-chains — note: reference docs are written in Chinese, commands are universal):
+chains — note: reference docs are written in Turkish, commands are universal):
 
 - [Search](references/search.md) — Exa AI search
 - [Social](references/social.md) — XiaoHongShu, Twitter, Bilibili, V2EX, Reddit, Facebook, Instagram (multi-backend/login-backed groups)
@@ -143,10 +146,11 @@ chains — note: reference docs are written in Chinese, commands are universal):
 - [Web](references/web.md) — Jina Reader, RSS
 - [Video](references/video.md) — YouTube, Bilibili, Xiaoyuzhou
 - [Finance](references/finance.md) — Xueqiu quotes, search and market content
+- [OpenCLI fallback](references/opencli-fallback.md) — sites blocked by login / Cloudflare / captcha / JS
 
 ## Configure a channel
 
 If a channel needs setup, fetch the install guide:
-https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/install.md
 
 The user only provides cookies / one extension click; the agent does the rest.

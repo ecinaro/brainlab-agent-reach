@@ -16,15 +16,20 @@ from agent_reach.cli import _cmd_skill, _install_skill, _uninstall_skill
 class TestSkillCommand(unittest.TestCase):
     """Test skill install and uninstall via CLI helpers."""
 
-    def test_skill_resources_include_both_locales(self):
-        """Package resources should expose both default and English skill markdown files."""
+    def test_skill_resources_include_all_locales(self):
+        """Package resources expose Turkish (default), English and Chinese skills."""
         skill_dir = importlib.resources.files("agent_reach").joinpath("skill")
 
-        default_skill = skill_dir.joinpath("SKILL.md").read_text(encoding="utf-8")
-        english_skill = skill_dir.joinpath("SKILL_en.md").read_text(encoding="utf-8")
-
-        self.assertTrue(default_skill.strip())
-        self.assertTrue(english_skill.strip())
+        for name in ("SKILL.md", "SKILL_en.md", "SKILL_zh.md"):
+            with self.subTest(name=name):
+                self.assertTrue(
+                    skill_dir.joinpath(name).read_text(encoding="utf-8").strip()
+                )
+        self.assertTrue(
+            skill_dir.joinpath("references", "opencli-fallback.md")
+            .read_text(encoding="utf-8")
+            .strip()
+        )
 
     def test_exa_reference_uses_default_registered_tools_only(self):
         """Agent instructions must not call Exa tools disabled by default."""
@@ -92,7 +97,7 @@ class TestSkillCommand(unittest.TestCase):
         ).read_text(encoding="utf-8")
         linkedin_section = install_doc.split(
             "**LinkedIn (", maxsplit=1
-        )[1].split("### Step 4:", maxsplit=1)[0]
+        )[1].split("### Adım 8:", maxsplit=1)[0]
 
         self.assertIn(
             "uvx mcp-server-linkedin@latest --login",
@@ -219,6 +224,82 @@ class TestSkillCommand(unittest.TestCase):
             self.assertTrue(
                 os.path.exists(os.path.join(skill_parent, "agent-reach", "references"))
             )
+
+
+_LOCALE_ENV = ("AGENT_REACH_LANG", "LC_ALL", "LC_MESSAGES", "LANG", "OPENCLAW_HOME")
+_TURKISH_MARKER = "LinkedIn/iş ilanları"
+_ENGLISH_MARKER = "Xiaoyuzhou Podcast, LinkedIn"
+_CHINESE_MARKER = "小宇宙播客"
+
+
+class TestSkillLanguageSelection(unittest.TestCase):
+    """SKILL.md is Turkish by default; en/zh locales pick their own file."""
+
+    def _install_with_env(self, locale_env):
+        """Install into a temp OpenClaw root and return the installed SKILL.md."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            skill_parent = os.path.join(tmpdir, ".openclaw", "skills")
+            os.makedirs(skill_parent)
+            env = {k: v for k, v in os.environ.items() if k not in _LOCALE_ENV}
+            env.update(locale_env)
+            with patch(
+                "agent_reach.cli.os.path.expanduser",
+                side_effect=lambda p: p.replace("~", tmpdir),
+            ), patch.dict(os.environ, env, clear=True):
+                _install_skill()
+
+            skill_root = os.path.join(skill_parent, "agent-reach")
+            with open(os.path.join(skill_root, "SKILL.md"), encoding="utf-8") as f:
+                content = f.read()
+            self.assertTrue(
+                os.path.isfile(
+                    os.path.join(skill_root, "references", "opencli-fallback.md")
+                )
+            )
+            return content
+
+    def test_default_without_locale_is_turkish(self):
+        content = self._install_with_env({})
+        self.assertIn(_TURKISH_MARKER, content)
+        self.assertNotIn(_ENGLISH_MARKER, content)
+        self.assertNotIn(_CHINESE_MARKER, content)
+
+    def test_turkish_and_unsupported_locales_install_turkish(self):
+        for env in (
+            {"LANG": "tr_TR.UTF-8"},
+            {"AGENT_REACH_LANG": "tr"},
+            {"LANG": "C.UTF-8"},
+            {"LANG": "de_DE.UTF-8"},
+        ):
+            with self.subTest(env=env):
+                self.assertIn(_TURKISH_MARKER, self._install_with_env(env))
+
+    def test_english_locale_installs_english(self):
+        for env in ({"LANG": "en_US.UTF-8"}, {"LC_ALL": "en_GB.UTF-8"}):
+            with self.subTest(env=env):
+                content = self._install_with_env(env)
+                self.assertIn(_ENGLISH_MARKER, content)
+                self.assertNotIn(_TURKISH_MARKER, content)
+
+    def test_chinese_locale_installs_chinese(self):
+        for env in ({"LANG": "zh_CN.UTF-8"}, {"AGENT_REACH_LANG": "zh"}):
+            with self.subTest(env=env):
+                content = self._install_with_env(env)
+                self.assertIn(_CHINESE_MARKER, content)
+                self.assertNotIn(_TURKISH_MARKER, content)
+
+    def test_agent_reach_lang_overrides_system_locale(self):
+        content = self._install_with_env(
+            {"AGENT_REACH_LANG": "tr", "LANG": "en_US.UTF-8"}
+        )
+        self.assertIn(_TURKISH_MARKER, content)
+
+    def test_missing_chinese_skill_falls_back_to_turkish(self):
+        missing = {"tr": "SKILL.md", "en": "SKILL_en.md", "zh": "SKILL_zh_missing.md"}
+        with patch("agent_reach.cli._SKILL_RESOURCES", missing):
+            content = self._install_with_env({"LANG": "zh_CN.UTF-8"})
+        self.assertIn(_TURKISH_MARKER, content)
+        self.assertNotIn(_CHINESE_MARKER, content)
 
 
 if __name__ == "__main__":

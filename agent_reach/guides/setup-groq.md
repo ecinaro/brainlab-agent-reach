@@ -1,47 +1,47 @@
-# Groq Whisper 配置指南
+# Groq Whisper kurulum rehberi
 
-## 功能说明
-当 YouTube/Bilibili 视频没有字幕时，用 Groq 的 Whisper API 进行语音转文字。Groq 提供免费额度。
+## Ne işe yarar?
+YouTube/Bilibili videosunun altyazısı yoksa sesi Groq'un Whisper API'si ile yazıya döker. Groq ücretsiz kota verir.
 
-## Agent 可自动完成的步骤
+## Ajanın kendi yapabileceği adımlar
 
-1. 检查是否已配置：
+1. Zaten ayarlı mı kontrol et:
 ```bash
 agent-reach doctor | grep -i "groq\|whisper"
 ```
 
-2. 如果用户提供了 key，写入配置：
+2. Kullanıcı anahtarı verdiyse ayara yaz:
 ```python
 from agent_reach.config import Config
 c = Config()
-c.set("groq_api_key", "用户提供的KEY")
+c.set("groq_api_key", "KULLANICININ_VERDIGI_ANAHTAR")
 ```
 
-3. 测试（可选）：
+3. Test et (isteğe bağlı):
 ```bash
 curl -s https://api.groq.com/openai/v1/models \
-  -H "Authorization: Bearer 用户提供的KEY" \
+  -H "Authorization: Bearer KULLANICININ_VERDIGI_ANAHTAR" \
   -o /dev/null -w "%{http_code}"
 ```
-返回 200 = 可用
+200 dönerse = çalışıyor
 
-## 需要用户手动做的步骤
+## Kullanıcının elle yapması gerekenler
 
-请告诉用户：
+Kullanıcıya şunu söyle:
 
-> 视频语音转文字需要一个 Groq API Key（免费）。
+> Videodaki konuşmayı yazıya dökmek için bir Groq API anahtarı lazım (ücretsiz).
 >
-> 步骤：
-> 1. 打开 https://console.groq.com
-> 2. 用 Google 账号或邮箱注册
-> 3. 点击左侧 "API Keys"
-> 4. 点击 "Create API Key"
-> 5. 复制生成的 Key，发给我
+> Adımlar:
+> 1. https://console.groq.com adresini aç
+> 2. Google hesabınla ya da e-postanla kayıt ol
+> 3. Soldaki "API Keys"e tıkla
+> 4. "Create API Key"e tıkla
+> 5. Oluşan anahtarı kopyala ve bana ver
 >
-> Groq 提供免费额度，日常使用完全够用。
+> Groq ücretsiz kota veriyor, günlük kullanım için fazlasıyla yeterli.
 
-## Agent 收到 key 后的操作
+## Ajan anahtarı aldıktan sonra
 
-1. 写入配置：`config.set("groq_api_key", key)`
-2. 测试 API 可用性
-3. 反馈："✅ 语音转文字已开启！现在遇到没有字幕的视频，我也能帮你提取内容了。"
+1. Ayara yaz: `config.set("groq_api_key", key)`
+2. API'nin çalıştığını test et
+3. Kullanıcıya söyle: "✅ Sesi yazıya dökme açıldı! Artık altyazısı olmayan videoların içeriğini de çıkarabilirim."

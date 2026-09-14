@@ -1,107 +1,85 @@
-# Contributing to Agent Reach
+# Agent Reach'e katkı rehberi
 
-Thank you for your interest in contributing to Agent Reach! This document provides guidelines and instructions for contributing.
+Agent Reach'e katkı vermek istediğin için teşekkürler! Bu belge nasıl katkı verebileceğini anlatır.
 
-## Getting Started
+> Bu repo, [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach) projesinin Türkçe çatalıdır. Türkçe sürüme özel değişiklikler (çeviri, OpenCLI yedek yolu) buraya; genel hata düzeltmeleri ve yeni kanallar mümkünse orijinal projeye gönderilmelidir.
 
-1. Fork the repository on GitHub
-2. Clone your fork locally
-3. Create a new branch for your contribution
-4. Make your changes
-5. Run tests and linting
-6. Submit a pull request
+## Başlarken
 
-## Development Setup
+1. Repoyu GitHub'da fork'la
+2. Fork'unu bilgisayarına klonla
+3. Katkın için yeni bir dal (branch) aç
+4. Değişikliklerini yap
+5. Testleri ve lint'i çalıştır
+6. Pull request gönder
+
+## Geliştirme ortamı
 
 ```bash
-# Clone your fork
-git clone https://github.com/YOUR_USERNAME/Agent-Reach.git
-cd Agent-Reach
+# Fork'unu klonla
+git clone https://github.com/KULLANICI_ADIN/brainlab-agent-reach.git
+cd brainlab-agent-reach
 
-# Install in development mode
+# Geliştirme modunda kur
 pip install -e ".[dev]"
 
-# Install pre-commit hooks (optional but recommended)
+# pre-commit kancalarını kur (isteğe bağlı ama önerilir)
 pre-commit install
 ```
 
-## Code Style
+## Kod stili
 
-We use the following tools to maintain code quality:
+Kod kalitesi için şu araçları kullanıyoruz:
 
-- **ruff**: Linting and import sorting
-- **mypy**: Type checking
-- **pytest**: Testing
+- **ruff**: Lint ve import sıralama
+- **mypy**: Tip kontrolü
+- **pytest**: Testler
 
-Run all checks before submitting a PR:
+PR göndermeden önce hepsini çalıştır:
 
 ```bash
-# Linting
+# Lint
 ruff check agent_reach tests
 ruff format agent_reach tests
 
-# Type checking
+# Tip kontrolü
 mypy agent_reach
 
-# Tests
+# Testler
 pytest
 ```
 
-## Adding New Channels
+## Yeni kanal ekleme
 
-Agent Reach uses a unified channel interface. To add a new platform:
+Agent Reach tüm platformlar için ortak bir kanal arayüzü kullanır. Yeni bir platform eklemek için:
 
-1. Create a new file in `agent_reach/channels/`
-2. Implement the channel contract (see existing channels for examples)
-3. Add tests in `tests/test_channels.py`
-4. Update `agent_reach/doctor.py` to include the new channel
-5. Update documentation
+1. `agent_reach/channels/` altında yeni bir dosya oluştur
+2. Kanal sözleşmesini uygula (örnek için mevcut kanallara bak)
+3. `tests/test_channels.py` içine test ekle
+4. Yeni kanalı `agent_reach/doctor.py` içine ekle
+5. Dokümanları güncelle (Türkçe dokümanlar varsayılan; mümkünse `docs/README_en.md` de)
 
-## Pull Request Guidelines
+Platformun özel bir aracı yoksa ya da giriş/Cloudflare engeli varsa önce OpenCLI yedeğinin ([opencli-fallback.md](agent_reach/skill/references/opencli-fallback.md)) işi görüp görmediğine bak.
 
-- **Small, focused changes** are preferred over large refactors
-- Include tests for new functionality
-- Update documentation if needed
-- Follow existing code style
-- Reference any related issues
+## Pull request kuralları
 
-## Reporting Issues
+- Büyük yeniden yazımlar yerine **küçük ve odaklı değişiklikler** tercih edilir
+- Yeni özellikler için test ekle
+- Gerekirse dokümanları güncelle
+- Mevcut kod stiline uy
+- İlgili issue'ları belirt
 
-When reporting bugs, please include:
+## Hata bildirme
 
-- Python version
-- Operating system
-- Steps to reproduce
-- Expected vs actual behavior
-- Any error messages
+Hata bildirirken şunları ekle:
 
-## Questions?
+- Python sürümü
+- İşletim sistemi
+- Hatayı tekrar oluşturma adımları
+- Beklenen ve gerçekleşen davranış
+- Varsa hata mesajları
+- OpenCLI ile ilgiliyse `opencli doctor` çıktısı
 
-Feel free to open an issue for questions or join discussions.
+## Sorular?
 
----
-
-感谢您对 Agent Reach 的贡献！本文档提供了贡献指南。
-
-## 快速开始
-
-1. 在 GitHub 上 fork 仓库
-2. 本地 clone 您的 fork
-3. 创建新分支
-4. 提交更改
-5. 运行测试和 lint
-6. 提交 pull request
-
-## 代码规范
-
-- 使用 **ruff** 进行代码检查
-- 使用 **mypy** 进行类型检查
-- 使用 **pytest** 运行测试
-
-## 添加新渠道
-
-1. 在 `agent_reach/channels/` 创建新文件
-2. 实现渠道接口
-3. 添加测试
-4. 更新 doctor 检测
-5. 更新文档
+Soruların için bir issue açabilirsin: https://github.com/ecinaro/brainlab-agent-reach/issues

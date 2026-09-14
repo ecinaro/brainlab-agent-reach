@@ -1,166 +1,288 @@
-# Agent Reach — Installation Guide
+# Agent Reach — Kurulum Rehberi
 
-## For Humans
+## İnsanlar için
 
-Copy this to your AI Agent:
+Bu cümleyi yapay zekâ ajanına yapıştır:
 
 ```
-帮我安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+Şu talimatları oku ve Agent Reach'i benim için kur: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/install.md
 ```
 
-> 🛡️ **Safe by default:** `agent-reach install` only checks the machine and lists missing dependencies:
-> ```
-> 帮我安全检查并安装 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
-> ```
-> Only use `--system` after the user explicitly approves system-level installs and configuration writes.
+> 🛡️ **Varsayılan olarak güvenli:** `agent-reach install` sadece bilgisayarı kontrol eder ve eksikleri listeler. Hiçbir şeyi değiştirmez.
+> Sistem düzeyinde kurulum (`--system`) ancak sen açıkça izin verdikten sonra yapılır.
+
+Ajanın sadece iki şey için sana ihtiyaç duyar: Chrome'a OpenCLI eklentisini eklemek ve sitelere giriş yapmak. Detay: [opencli-chrome-kurulum.md](opencli-chrome-kurulum.md)
 
 ---
 
-## For AI Agents
+## Yapay zekâ ajanları için
 
-### Goal
+Bu bölüm sana (ajana) yazıldı. Adımları sırayla uygula. **Kullanıcıyla her zaman Türkçe konuş.** Kısa ve basit cümleler kur. Teknik terim kullanırsan bir cümleyle açıkla.
 
-Install Agent Reach and all upstream tools so your user's agent has full internet access. After installation, you'll use the upstream tools directly (OpenCLI, twitter-cli, bili-cli, rdt-cli, yt-dlp, mcporter, gh CLI, etc.) — Agent Reach is the selector, installer, health checker and router, never a wrapper.
+### Amaç
 
-### ⚠️ Boundaries
+Agent Reach'i ve üst akış (upstream) araçlarını kur. Böylece kullanıcının ajanı interneti okuyabilsin.
 
-When fixing issues, stay within these limits:
+Kurulumdan sonra üst akış araçlarını doğrudan kullanacaksın (OpenCLI, twitter-cli, bili-cli, rdt-cli, yt-dlp, mcporter, gh CLI vb.). Agent Reach bir sarmalayıcı (wrapper) değildir. Görevi: araç seçmek, kurmak, sağlık kontrolü yapmak ve yönlendirmek.
 
-- **DO NOT** run commands with `sudo` unless the user explicitly approved
-- **DO NOT** modify system files outside `~/.agent-reach/`
-- **DO NOT** install packages not listed in this guide
-- **DO NOT** disable firewalls, security settings, or system protections
-- **DO NOT** clone repos, create files, or run commands inside the agent workspace / working directory
-- If something requires elevated permissions, **tell the user** what's needed and let them decide
+### ⚠️ Sınırlar
 
-### 📁 Directory Rules
+Sorun çözerken bu sınırların dışına çıkma:
 
-All Agent Reach files go in dedicated directories — **never in the agent workspace**:
+- Kullanıcı açıkça onaylamadıkça **`sudo` ile komut çalıştırma.**
+- `~/.agent-reach/` dışındaki **sistem dosyalarını değiştirme.**
+- Bu rehberde geçmeyen **paketleri kurma.**
+- Güvenlik duvarını, güvenlik ayarlarını ya da sistem korumalarını **kapatma.**
+- Ajanın çalışma alanında (workspace / proje klasörü) **repo klonlama, dosya oluşturma, komut çalıştırma.**
+- **Kullanıcının yerine giriş yapma, şifre isteme, captcha çözme, Chrome eklentisi kurma.** Bunları kullanıcı kendisi yapar.
+- Bir şey yüksek yetki gerektiriyorsa **kullanıcıya ne gerektiğini söyle**, kararı ona bırak.
 
-| Purpose | Directory | Example |
-|---------|-----------|---------|
-| Config & tokens | `~/.agent-reach/` | `~/.agent-reach/config.json` |
-| Upstream tool repos | `~/.agent-reach/tools/` | `~/.agent-reach/tools/xiaoyuzhou/` |
-| Temporary files | `/tmp/` | `/tmp/yt-dlp-output/` |
-| Skills | `~/.openclaw/skills/agent-reach/` | SKILL.md |
+### 📁 Klasör kuralları
 
-**Why?** If you clone repos or create files in the workspace, it pollutes the user's project directory and can break their agent over time. Keep the workspace clean.
+Agent Reach dosyaları kendi klasörlerine gider. **Asla ajanın çalışma alanına değil:**
 
-### Step 1: Install the basics
+| Amaç | Klasör | Örnek |
+|---|---|---|
+| Ayarlar ve anahtarlar | `~/.agent-reach/` | `~/.agent-reach/config.yaml` |
+| Üst akış araç repoları | `~/.agent-reach/tools/` | `~/.agent-reach/tools/xiaoyuzhou/` |
+| Geçici dosyalar | `/tmp/` | `/tmp/yt-dlp-output/` |
+| Skill dosyaları | `~/.claude/skills/agent-reach/`, `~/.agents/skills/agent-reach/`, `~/.config/opencode/skills/agent-reach/`, `~/.openclaw/skills/agent-reach/` | SKILL.md |
+
+**Neden?** Çalışma alanına repo klonlar ya da dosya oluşturursan kullanıcının proje klasörünü kirletirsin. Zamanla ajanını bozabilir. Çalışma alanını temiz tut.
+
+### Adım 0: Ortamı tanı
+
+Kurulumdan önce şunları öğren:
 
 ```bash
-# 推荐：pipx（最省心）
-pipx install https://github.com/Panniantong/agent-reach/archive/main.zip
-agent-reach install --env=auto               # Read-only check (default)
-# After the user explicitly approves system changes:
-agent-reach install --env=auto --system
+# İşletim sistemi
+uname -s            # Linux / Darwin (macOS). Windows'ta: $env:OS veya `ver`
 
-# 如果你的 Python 来自 Homebrew / 遇到 PEP 668（externally-managed-environment）
-# 用虚拟环境安装：
-python3 -m venv ~/.agent-reach-venv
-source ~/.agent-reach-venv/bin/activate
-pip install https://github.com/Panniantong/agent-reach/archive/main.zip
-agent-reach install --env=auto               # Read-only check (default)
-# After the user explicitly approves system changes:
-agent-reach install --env=auto --system
+# Python (3.10+ gerekli)
+python3 --version   # Windows'ta: py -3 --version
+
+# Node.js (OpenCLI için 20+ gerekli)
+node -v
+
+# Chrome kurulu mu? Ekran var mı?
 ```
 
-> 💡 **Windows / Microsoft Store Python alias?**
-> 如果 `python3 --version` 打开 Microsoft Store，或 `where python3` 指向
-> `...\AppData\Local\Microsoft\WindowsApps\python3.exe`，说明 `python3` 是 Windows
-> 的 Store alias，不是可用的 Python 安装。请改用 Python Launcher `py -3`，或实际安装目录里的 `python.exe`。
+Karar ver:
+
+- **Yerel bilgisayar (masaüstü, Chrome var):** Tam kurulum + OpenCLI önerilir.
+- **Sunucu / VPS (ekran yok, Chrome yok):** OpenCLI atlanır. Cookie tabanlı yollar ve MCP kullanılır.
+
+`agent-reach install --env=auto` bunu kendisi de tespit eder ve çıktının başında `Environment: Local computer` ya da `Environment: Server/VPS` yazar.
+
+> ⚠️ **OpenClaw kullanıyorsan önce `exec` iznini aç.** Agent Reach, ajanın kabuk komutu çalıştırmasına dayanır. OpenClaw varsayılan `messaging` araç profilindeyse komut çalıştıramazsın. Kullanıcıya şunu çalıştırmasını söyle:
 >
-> PowerShell 示例：
+> ```bash
+> openclaw config set tools.profile "coding"
+> ```
+> Ya da `~/.openclaw/openclaw.json` içinde `"tools": { "profile": "coding" }` ayarla. Sonra Gateway'i yeniden başlat (`openclaw gateway restart`) ve yeni bir sohbet aç. Claude Code, Cursor, Windsurf gibi diğer ajanlar bundan etkilenmez.
+
+### Adım 1: Paketi kur
+
+> PyPI'daki `agent-reach` paketi bu proje **değildir.** Her zaman aşağıdaki GitHub linkini kullan.
+
+```bash
+# Önerilen: pipx (en az dert)
+pipx install https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip
+agent-reach install --env=auto               # Sadece kontrol (varsayılan)
+
+# Python Homebrew'dan geliyorsa / PEP 668 (externally-managed-environment) hatası alırsan
+# sanal ortam (venv) kullan:
+python3 -m venv ~/.agent-reach-venv
+source ~/.agent-reach-venv/bin/activate
+pip install https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip
+agent-reach install --env=auto               # Sadece kontrol (varsayılan)
+```
+
+> 💡 **Windows / Microsoft Store Python takma adı?**
+> `python3 --version` Microsoft Store'u açıyorsa ya da `where python3`
+> `...\AppData\Local\Microsoft\WindowsApps\python3.exe` gösteriyorsa, bu gerçek bir Python değil,
+> Windows'un Store kısayoludur. Python Launcher `py -3` ya da gerçek kurulum klasöründeki `python.exe` kullan.
+>
+> PowerShell örneği:
 > ```powershell
 > py -3 -m venv $env:USERPROFILE\.agent-reach-venv
 > $env:USERPROFILE\.agent-reach-venv\Scripts\Activate.ps1
-> python -m pip install https://github.com/Panniantong/agent-reach/archive/main.zip
+> python -m pip install https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip
 > agent-reach install --env=auto
 > ```
+> PowerShell betik politikası `Activate.ps1` ya da `npm` çalıştırmayı engellerse `npm.cmd` kullan veya venv içindeki `python.exe`'yi doğrudan çağır.
 
-The default command checks core infrastructure (gh CLI, Node.js, mcporter, Exa search, yt-dlp config) without changing the host. With explicit `--system` approval it installs/configures the missing pieces and activates these zero-config channels:
+> 💡 **macOS / Homebrew Python `externally-managed-environment` diyor mu?**
+> Bu PEP 668 korumasıdır, Agent Reach'in hatası değil. Önce `pipx install ...` dene ya da önce `venv` oluştur.
 
-- Web (Jina Reader), YouTube, GitHub, RSS, Exa Search, V2EX, Bilibili (basic)
+### Adım 2: Kontrol et, izin al, kur
 
-> 💡 **macOS / Homebrew Python 提示 `externally-managed-environment`？**
-> 这是 PEP 668 保护，不是 Agent Reach 本身的问题。优先用 `pipx install ...`，或先创建 `venv` 再安装。
-
-**Install modes:**
-
-```bash
-agent-reach install --env=auto             # Check only; safe default
-agent-reach install --env=auto --safe      # Same check-only behavior (compatibility)
-agent-reach install --env=auto --system    # Explicitly allow external/system installs
-agent-reach install --env=auto --dry-run   # Preview what --system would do
-```
-
-### Step 2: Ask the user which optional channels they want
-
-After installing the basics, **ask the user** which additional channels they need. Present this list:
-
-> 基础渠道装好了！你现在可以让我搜网页、看 YouTube、读 GitHub 等。
->
-> 还有这些可选渠道，你需要哪些？
->
-> - 🌟 **OpenCLI**（桌面推荐）— 一次安装即可提供 Reddit/Facebook/Instagram/B站字幕/Twitter 备选，并作为小红书桌面后端；小红书只使用用户已有且明确控制的 Chrome 会话
-> - 🐦 **Twitter/X** — 搜推文、看时间线（需要登录 Cookie）
-> - 📈 **雪球** — 股票行情、热门帖子（需要登录 Cookie）
-> - 🎙️ **小宇宙播客** — 音频转文字（需要免费 Groq Key）
-> - 📕 **小红书** — 搜索、阅读、评论（OpenCLI 用已有会话；MCP/存量工具用 Cookie-Editor）
-> - 📖 **Reddit** — 搜索和阅读帖子（必须登录态：桌面 OpenCLI 或 rdt-cli + Cookie）
-> - 📘 **Facebook** — 搜索、主页、Feed、群组列表（桌面走 OpenCLI，复用 Chrome 登录态）
-> - 📷 **Instagram** — 用户搜索、Profile、用户最近帖子、Explore（桌面走 OpenCLI，复用 Chrome 登录态）
-> - 📺 **B站完整版** — 热门、排行、搜索、视频详情（bili-cli，无需登录）
-> - 💼 **LinkedIn** — Profile、职位搜索
->
-> 告诉我你要哪些，比如"帮我装小红书和 Twitter"、"帮我装 Facebook 和 Instagram"。或者说"全部装"。
-
-Based on the user's choice, run:
+Varsayılan komut çekirdek altyapıyı (gh CLI, Node.js, mcporter, Exa araması, yt-dlp ayarı) sistemi değiştirmeden kontrol eder:
 
 ```bash
-agent-reach install --env=auto --system --channels=opencli,xiaohongshu   # Desktop user chose XHS
-agent-reach install --env=auto --system --channels=facebook,instagram    # Desktop Meta channels
-agent-reach install --env=auto --system --channels=all                   # User approved everything
+agent-reach install --env=auto
 ```
 
-Supported channel names: `opencli`, `twitter`, `xiaoyuzhou`, `xueqiu`, `xiaohongshu`, `reddit`, `facebook`, `instagram`, `bilibili`, `linkedin`, `all`
+Çıktıyı kullanıcıya Türkçe özetle ve **izin iste**. Örnek:
 
-### Step 3: Fix what's broken
+> "Kontrol bitti. Eksik olanlar: X, Y. Bunları kurmam için bilgisayarında global araç kurmam ve `~/.agent-reach/` altına ayar yazmam gerekiyor. Kurayım mı?"
 
-Run `agent-reach doctor` and check the output.
+Kullanıcı açıkça "evet" derse:
 
-Try to get as many channels to ✅ as possible. If something failed during install or shows as ❌/⚠️ in doctor, diagnose the problem and try to fix it — but stay within the boundaries above. If a fix requires elevated permissions or system changes, ask the user first.
+```bash
+agent-reach install --env=auto --system
+```
 
-Only ask the user when you genuinely need their input (credentials, permissions, etc.).
+`--system` eksikleri kurar/ayarlar ve şu kurulumsuz çalışan kanalları açar:
 
-### Step 3: Configure things that need user input
+- Web (Jina Reader), YouTube, GitHub, RSS, Exa araması, V2EX, Bilibili (temel)
 
-Some channels need credentials only the user can provide. Based on the doctor output, ask for what's missing:
+**Kurulum modları:**
 
-> 🔒 **Security tip:** For platforms that need cookies or browser sessions (Twitter, XiaoHongShu, Reddit, Facebook, Instagram), we recommend using a **dedicated/secondary account** rather than your main account. Cookie/browser-session auth carries two risks:
-> 1. **Account ban** — platforms may detect non-browser API calls and restrict or ban the account
-> 2. **Credential exposure** — cookies grant full account access; using a secondary account limits the blast radius if credentials are ever compromised
+```bash
+agent-reach install --env=auto             # Sadece kontrol; güvenli varsayılan
+agent-reach install --env=auto --safe      # Aynı: sadece kontrol (uyumluluk için)
+agent-reach install --env=auto --system    # Harici/sistem kurulumuna açık izin
+agent-reach install --env=auto --dry-run   # --system'in ne yapacağını önizle
+```
 
-> 🍪 **Cookie / 登录态：**
+### Adım 3: Skill'i kur
+
+Skill dosyası (SKILL.md), ajanlara hangi platformda hangi komutu çağıracaklarını anlatır. Varsayılan dil Türkçedir.
+
+```bash
+agent-reach skill --install
+```
+
+Bu komut skill dosyalarını bulunan ajan klasörlerine yazar (`~/.claude/skills`, `~/.agents/skills`, `~/.config/opencode/skills`, `~/.openclaw/skills`). `--system` kurulumu skill'i zaten kurar; bu komut en güncel hali yeniden yazar.
+
+### Adım 4: OpenCLI (erişilemeyen siteler için yedek)
+
+**Sadece yerel bilgisayarda.** Sunucuda bu adımı atla ve kullanıcıya "OpenCLI masaüstü ve Chrome ister, sunucuda kullanılamaz" de.
+
+OpenCLI, kullanıcının gerçek Chrome'unu bir eklenti üzerinden kullanır:
+
+```
+opencli  ⇄  localhost:19825 (daemon)  ⇄  Chrome eklentisi  ⇄  kullanıcının Chrome'u
+```
+
+İki işe yarar:
+
+1. Reddit, Facebook, Instagram, XiaoHongShu için ana yol; Twitter ve Bilibili altyazı için yedek yol.
+2. **Genel yedek:** Başka hiçbir yolla okunamayan siteler için (giriş duvarı, Cloudflare/captcha, JavaScript yüzünden boş gelen sayfa, 401/403/429).
+
+Kullanıcıya kısaca açıkla ve izin iste:
+
+> "Bazı siteler giriş ister ya da robotları engeller. OpenCLI adlı bir araçla bu siteleri senin Chrome'undan, senin açık oturumunla okuyabilirim. Şifren bana gelmez, her şey bilgisayarında kalır, sadece okurum. Kurayım mı?"
+
+Evet derse (Node.js 20+ gerekir):
+
+```bash
+agent-reach install --env=auto --system --channels=opencli
+# ya da doğrudan:
+npm install -g @jackwener/opencli
+# Windows PowerShell betik hatası verirse:
+npm.cmd install -g @jackwener/opencli
+```
+
+Sonra **kullanıcıya şu adımları yapmasını söyle.** Bunları sen yapamazsın ve yapmaya çalışmamalısın (Chrome güvenlik kuralı + hesap güvenliği):
+
+> **Senin yapman gereken 3 şey:**
+> 1. Şu linki Chrome'da aç ve **Chrome'a ekle**ye tıkla: https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk
+>    (Mağaza açılmazsa: https://github.com/jackwener/opencli/releases sayfasından `opencli-extension-v*.zip` indir → klasöre çıkar → `chrome://extensions` → Geliştirici modu → Paketlenmemiş öğe yükle.)
+> 2. Chrome'da okumamı istediğin sitelere normal şekilde giriş yap (ör. reddit.com, facebook.com, instagram.com, x.com).
+> 3. Bitince bana "tamam" yaz.
+
+Kullanıcı "tamam" deyince doğrula:
+
+```bash
+opencli doctor
+opencli web read --url https://example.com --stdout
+```
+
+`opencli doctor` eklentiyi bağlı (connected) göstermeli. Göstermiyorsa:
+
+- Çıkış kodu **69**: eklenti bağlı değil → kullanıcıdan `chrome://extensions` sayfasında OpenCLI'ı etkinleştirmesini iste.
+- Çıkış kodu **77**: siteye giriş yapılmamış → kullanıcıdan Chrome'da giriş yapmasını iste.
+- Çıkış kodu **75**: zaman aşımı → tekrar dene.
+- `attach failed: chrome-extension://...` → kullanıcıdan 1Password gibi hata ayıklayıcı kullanan eklentileri geçici kapatmasını iste.
+- Daemon takıldıysa: `opencli daemon status`, `opencli daemon restart`.
+
+**Kullanım kuralları (her zaman):**
+
+- Önce normal yolu dene. OpenCLI'a sadece normal yol başarısız olursa geç. Karar sırası: `agent_reach/skill/references/opencli-fallback.md`.
+- Genel komutlar: `opencli web read --url <adres> --stdout` (sayfa → Markdown), `opencli browser <oturum> open <adres>` / `state` / `extract` / `close`.
+- Hazır adaptörler: `opencli list`. Çıktı biçimi: `-f json|yaml|md|csv|table`.
+- **Asla** giriş formu doldurma, şifre girme, captcha çözme. Giriş gerekiyorsa dur ve kullanıcıya söyle.
+- **Sadece oku.** Beğenme, paylaşma, yorum, mesaj, satın alma yapma.
+
+Detaylı kullanıcı rehberi: [opencli-chrome-kurulum.md](opencli-chrome-kurulum.md)
+
+### Adım 5: Kullanıcıya isteğe bağlı kanalları sor
+
+Temel kurulumdan sonra **kullanıcıya** başka hangi kanalları istediğini sor. Bu listeyi göster:
+
+> Temel kanallar hazır! Artık web'de arama yapabilir, YouTube izleyebilir, GitHub okuyabilirim.
 >
-> 传统 CLI 需要 Cookie 的平台（Twitter、雪球等），**优先使用 Cookie-Editor 导入**，这是最简单最可靠的方式：
-> 1. 用户在自己的浏览器上登录对应平台
-> 2. 安装 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome 插件
-> 3. 点击插件 → Export → Header String
-> 4. 把导出的字符串发给 Agent
+> İstersen bunları da açabilirim. Hangileri lazım?
 >
-> Twitter 只接受用户通过 Cookie-Editor 明确导出的内容。Agent Reach 不替用户执行小红书登录，也不读取小红书浏览器 Cookie；小红书 OpenCLI 只使用用户已有且明确控制的 Chrome 会话。没有现成会话时，改用 Cookie-Editor 导出后配置 xiaohongshu-mcp / 存量工具。雪球、Bilibili 可按平台显式导入，例如 `agent-reach configure --from-browser chrome --platform xueqiu`；命令不会扫描或保存其他平台。
+> - 🌟 **OpenCLI** (masaüstü için önerilir) — Tek kurulumla Reddit, Facebook, Instagram, Bilibili altyazı, Twitter yedeği ve erişilemeyen siteler için genel yedek. XiaoHongShu'da sadece Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği oturumu kullanır.
+> - 🐦 **Twitter/X** — tweet arama, akış (giriş Cookie'si gerekir)
+> - 📈 **Xueqiu** — hisse fiyatları, popüler gönderiler (giriş Cookie'si gerekir)
+> - 🎙️ **Xiaoyuzhou podcast** — sesi yazıya dökme (ücretsiz Groq anahtarı gerekir)
+> - 📕 **XiaoHongShu** — arama, okuma, yorumlar (OpenCLI mevcut oturumla; MCP/eski araçlar Cookie-Editor ile)
+> - 📖 **Reddit** — arama ve gönderi okuma (giriş şart: masaüstünde OpenCLI ya da rdt-cli + Cookie)
+> - 📘 **Facebook** — arama, sayfa, akış, grup listesi (masaüstünde OpenCLI, Chrome oturumunu kullanır)
+> - 📷 **Instagram** — kullanıcı arama, profil, son gönderiler, Explore (masaüstünde OpenCLI)
+> - 📺 **Bilibili tam sürüm** — popüler, sıralama, arama, video detayı (bili-cli, giriş gerekmez)
+> - 💼 **LinkedIn** — profil, iş arama
+>
+> Hangilerini istediğini yaz. Örneğin "Twitter ve Reddit'i kur", "Facebook ve Instagram'ı kur" ya da "hepsini kur".
 
-**Twitter search & posting:**
-> "To unlock Twitter search, I need your Twitter cookies. Install the Cookie-Editor Chrome extension, go to x.com/twitter.com, click the extension → Export → Header String, and paste it to me."
+Kullanıcının seçimine göre çalıştır:
+
+```bash
+agent-reach install --env=auto --system --channels=opencli,xiaohongshu   # Masaüstü, XiaoHongShu seçti
+agent-reach install --env=auto --system --channels=facebook,instagram    # Masaüstü Meta kanalları
+agent-reach install --env=auto --system --channels=all                   # Kullanıcı hepsini onayladı
+```
+
+Desteklenen kanal adları: `opencli`, `twitter`, `xiaoyuzhou`, `xueqiu`, `xiaohongshu`, `reddit`, `facebook`, `instagram`, `bilibili`, `linkedin`, `all`
+
+### Adım 6: Bozuk olanları düzelt
+
+`agent-reach doctor` çalıştır ve çıktıya bak.
+
+Olabildiğince çok kanalı ✅ yapmaya çalış. Kurulumda bir şey başarısız olduysa ya da doctor ❌/⚠️ gösteriyorsa sorunu bul ve düzeltmeye çalış. Ama yukarıdaki sınırların içinde kal. Düzeltme yüksek yetki ya da sistem değişikliği gerektiriyorsa önce kullanıcıya sor.
+
+Kullanıcıya sadece gerçekten onun girdisi gerektiğinde sor (Cookie, izin vb.).
+
+### Adım 7: Kullanıcı girdisi gereken ayarlar
+
+Bazı kanallar sadece kullanıcının verebileceği bilgilere ihtiyaç duyar. Doctor çıktısına göre eksik olanı iste:
+
+> 🔒 **Güvenlik önerisi:** Cookie ya da tarayıcı oturumu gerektiren platformlarda (Twitter, XiaoHongShu, Reddit, Facebook, Instagram) ana hesap yerine **ikinci/yedek bir hesap** kullanılmasını öner. Cookie/oturum ile erişimin iki riski var:
+> 1. **Hesap kısıtlama** — platformlar tarayıcı dışı erişimi fark edip hesabı kısıtlayabilir ya da kapatabilir.
+> 2. **Bilgi sızması** — Cookie hesaba tam erişim verir; yedek hesap, bir sızıntıda zararı sınırlar.
+
+> 🍪 **Cookie / oturum:**
+>
+> Cookie isteyen klasik CLI'lar için (Twitter, Xueqiu vb.) **önce Cookie-Editor ile içe aktarmayı** öner. En basit ve en güvenilir yol budur:
+> 1. Kullanıcı kendi tarayıcısında ilgili platforma giriş yapar.
+> 2. [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) Chrome eklentisini kurar.
+> 3. Eklentiye tıklar → Export → Header String.
+> 4. Dışa aktarılan metni ajana verir.
+>
+> Twitter için sadece kullanıcının Cookie-Editor ile açıkça dışa aktardığı içerik kabul edilir. Agent Reach XiaoHongShu'ya kullanıcı adına giriş yapmaz ve tarayıcıdan XiaoHongShu Cookie'si okumaz. XiaoHongShu için OpenCLI yalnızca Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği oturumu kullanır. Hazır oturum yoksa Cookie-Editor ile dışa aktarıp xiaohongshu-mcp / eski araçları yapılandır. Xueqiu ve Bilibili platform bazında açıkça içe aktarılabilir, örneğin `agent-reach configure --from-browser chrome --platform xueqiu`; bu komut başka platformları taramaz ve kaydetmez.
+
+**Twitter arama ve gönderi:**
+> "Twitter aramasını açmak için Twitter Cookie'lerine ihtiyacım var. Chrome'a Cookie-Editor eklentisini kur, x.com'a git, eklentiye tıkla → Export → Header String, çıkan metni bana yapıştır."
 
 ```bash
 agent-reach configure twitter-cookies
 ```
 
-这会把 `twitter_auth_token` 和 `twitter_ct0` 保存给 Agent Reach 自己的
-`doctor` 配置检查。`doctor` 不会实时执行上游 `twitter status`，也不会修改
-当前 Shell。直接运行 `twitter search/read/...` 前，必须在该进程环境中显式设置：
+Bu komut `twitter_auth_token` ve `twitter_ct0` değerlerini Agent Reach'in kendi `doctor` kontrolü için kaydeder. `doctor` üst akıştaki `twitter status` komutunu çalıştırmaz ve mevcut Shell'i değiştirmez. `twitter search/read/...` komutlarını doğrudan çalıştırmadan önce o işlemin ortamında şunları açıkça ayarlaman gerekir:
 
 ```bash
 export TWITTER_AUTH_TOKEN="..."
@@ -168,208 +290,227 @@ export TWITTER_CT0="..."
 twitter search "query" -n 10
 ```
 
-> **代理说明（中国大陆等需要翻墙的网络环境）：**
+> **Proxy notu (erişimin kısıtlı olduğu ağlar):**
 >
-> twitter-cli 和 rdt-cli 使用 Python，在需要代理的网络环境下可通过环境变量配置代理。
+> twitter-cli ve rdt-cli Python ile yazılmıştır; proxy gereken ağlarda ortam değişkeniyle proxy verilebilir.
 >
-> **你（Agent）需要做的：**
-> 1. 确认用户配了代理：`agent-reach configure proxy`（隐藏输入）
-> 2. 设置环境变量：`export HTTP_PROXY="..." HTTPS_PROXY="..."`
-> 3. Agent Reach 会自动处理剩下的，不需要用户做额外操作
+> **Senin (ajanın) yapman gerekenler:**
+> 1. Kullanıcının proxy ayarladığını doğrula: `agent-reach configure proxy` (gizli giriş)
+> 2. Ortam değişkenlerini ayarla: `export HTTP_PROXY="..." HTTPS_PROXY="..."`
+> 3. Gerisini Agent Reach halleder, kullanıcının ek bir şey yapmasına gerek yok.
 >
-> 如果用户报告 "fetch failed"，参考 [troubleshooting.md](troubleshooting.md)
+> Kullanıcı "fetch failed" hatası bildirirse [troubleshooting.md](troubleshooting.md) dosyasına bak.
 
-**Reddit (login is mandatory — no zero-config path):**
-> Reddit 的匿名接口已被封、官方 API 需人工审批。桌面用户首选 OpenCLI（浏览器里登录过 reddit.com 即可用）；服务器/存量用户用 rdt-cli：
+**Reddit (giriş şart, kurulumsuz yol yok):**
+> Reddit'in anonim erişimi kapalı, resmi API elle onay istiyor. Masaüstü kullanıcıları için ilk tercih OpenCLI (Chrome'da reddit.com'a giriş yapılmış olması yeterli). Sunucu / eski kurulum kullanıcıları için rdt-cli:
 
 ```bash
-# PyPI 落后，从 GitHub 装（与代码内 _RDT_GIT_SOURCE 同一钉定版本）
+# PyPI geride; GitHub'dan kur (koddaki _RDT_GIT_SOURCE ile aynı sabit sürüm)
 pipx install 'git+https://github.com/public-clis/rdt-cli.git@5e4fb3720d5c174e976cd425ccc3b879d52cac66'
-rdt login   # 自动提取浏览器 Cookie；服务器无浏览器时按 doctor 提示手动写 Cookie
+rdt login   # Tarayıcı Cookie'sini otomatik çeker; tarayıcısız sunucuda doctor'ın gösterdiği gibi Cookie'yi elle yaz
 ```
 
-> 中国大陆访问 Reddit 需要代理；服务器 IP 被风控时可配住宅代理（如 https://webshare.io，约 $1/月）：
+> Reddit'e erişimin engellendiği ağlarda proxy gerekir. Sunucu IP'si engellenirse konut (residential) proxy kullanılabilir (ör. https://webshare.io, ayda yaklaşık 1 $):
 > ```bash
 > agent-reach configure proxy
 > ```
 
-**XiaoHongShu / 小红书（多后端，按环境选）:**
+**XiaoHongShu (birden fazla yol, ortama göre seç):**
 
-> **认证边界：** Agent Reach 不替用户执行小红书登录，也不读取浏览器
-> Cookie。OpenCLI 只使用用户已经存在且明确控制的 Chrome 会话；
-> `agent-reach configure xhs-cookies` 不会把 Cookie 注入 OpenCLI 或 Chrome。
-> 如果没有现成会话，不要自动登录；改用 Cookie-Editor 手工导出后配置
-> xiaohongshu-mcp 或存量工具：
+> **Kimlik doğrulama sınırı:** Agent Reach XiaoHongShu'ya kullanıcı adına giriş yapmaz ve
+> tarayıcı Cookie'si okumaz. OpenCLI yalnızca Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği oturumu kullanır;
+> `agent-reach configure xhs-cookies` Cookie'yi OpenCLI'a veya Chrome'a aktarmaz.
+> Hazır oturum yoksa otomatik giriş yapma; Cookie-Editor ile elle dışa aktarıp
+> xiaohongshu-mcp ya da eski araçları yapılandır:
 >
 > ```bash
 > agent-reach configure xhs-cookies
 > ```
 >
-> 该显式命令会保存/导入用户提供的 xiaohongshu.com 同域 Cookie 集；请先确认
-> Cookie 名称和范围。非 xiaohongshu.com 域 Cookie 会被忽略。
+> Bu açık komut, kullanıcının verdiği xiaohongshu.com alan adına ait Cookie setini kaydeder/içe aktarır. Önce
+> Cookie adlarını ve kapsamını doğrula. xiaohongshu.com dışındaki alan adlarına ait Cookie'ler yok sayılır.
 >
-> **桌面电脑（推荐 OpenCLI）：**
+> **Masaüstü bilgisayar (OpenCLI önerilir):**
 
 ```bash
 agent-reach install --system --channels opencli
 ```
 
-> 装完后引导用户做唯一一步手动操作（Chrome 安全限制，无法代劳）：
-> 1. 打开 https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk
-> 2. 点「添加至 Chrome」
-> 3. 运行 `opencli doctor` 验证（显示 Extension: connected 即成功）
+> Kurulumdan sonra kullanıcıya tek elle yapılacak adımı anlat (Chrome güvenlik kuralı, senin yerine yapılamaz):
+> 1. https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk adresini aç
+> 2. **Chrome'a ekle**ye tıkla
+> 3. `opencli doctor` ile doğrula (eklenti bağlı görünmeli)
 >
-> AUTH_REQUIRED 且用户没有现成会话时，不要替用户自动登录；改走下面的
-> xiaohongshu-mcp / 存量工具 Cookie-Editor 路线。
+> AUTH_REQUIRED hatası gelir ve kullanıcının hazır oturumu yoksa kullanıcı adına otomatik giriş yapma;
+> aşağıdaki xiaohongshu-mcp / eski araç Cookie-Editor yoluna geç.
 >
-> **服务器 / 无桌面环境（xiaohongshu-mcp）：**
-> 1. 从 https://github.com/xpzouying/xiaohongshu-mcp/releases 下载对应平台 binary 到 `~/.agent-reach/tools/`
-> 2. 启动服务（首次运行会自动下载约 150MB 无头浏览器，耐心等完成）
-> 3. 按上面的 Cookie-Editor 流程手工导入 Cookie
-> 4. 接入：`mcporter config add xiaohongshu http://localhost:18060/mcp --scope home`
-> 5. 调用时务必带 `--timeout 120000`
+> **Sunucu / masaüstü olmayan ortam (xiaohongshu-mcp):**
+> 1. https://github.com/xpzouying/xiaohongshu-mcp/releases adresinden platforma uygun binary'yi `~/.agent-reach/tools/` klasörüne indir
+> 2. Servisi başlat (ilk çalıştırmada yaklaşık 150 MB'lık başsız tarayıcı iner, bitmesini bekle)
+> 3. Yukarıdaki Cookie-Editor akışıyla Cookie'yi elle içe aktar
+> 4. Bağla: `mcporter config add xiaohongshu http://localhost:18060/mcp --scope home`
+> 5. Çağırırken mutlaka `--timeout 120000` ekle
 >
-> **存量用户（xhs-cli）：** 已装好的 xhs-cli 继续作为备选后端工作
-> （上游 2026-03 起停更，不推荐新装）；认证仍使用上面的 Cookie-Editor
-> 手工导出流程。
+> **Eski kurulum kullanıcıları (xhs-cli):** Zaten kurulu xhs-cli yedek yol olarak çalışmaya devam eder
+> (üst akış 2026-03'ten beri güncellenmiyor, yeni kurulum önerilmez); kimlik doğrulama yine yukarıdaki
+> Cookie-Editor elle dışa aktarma akışıyla yapılır.
 
-**Facebook / Instagram（桌面 OpenCLI）:**
-> 这两个平台走 OpenCLI：复用用户自己的 Chrome 登录态，不保存账号密码，不走 Meta Graph API 审批流。服务器/无桌面环境不推荐支持。
+**Facebook / Instagram (masaüstünde OpenCLI):**
+> Bu iki platform OpenCLI ile çalışır: kullanıcının kendi Chrome oturumunu kullanır, hesap şifresi kaydetmez, Meta Graph API onay sürecine girmez. Sunucu / masaüstü olmayan ortamlar desteklenmez.
 
 ```bash
 agent-reach install --system --channels facebook,instagram
 ```
 
-> 装完后：
-> 1. 确认 Chrome 已安装 OpenCLI 扩展并通过 `opencli doctor`
-> 2. 在 Chrome 里登录 facebook.com / instagram.com
-> 3. Agent 直接调用：
+> Kurulumdan sonra:
+> 1. Chrome'da OpenCLI eklentisinin kurulu olduğunu ve `opencli doctor` kontrolünden geçtiğini doğrula
+> 2. Kullanıcı Chrome'da facebook.com / instagram.com'a kendisi giriş yapar
+> 3. Ajan doğrudan çağırır:
 >    ```bash
 >    opencli facebook search "query" -f yaml
 >    opencli facebook profile zuck -f yaml
 >    opencli facebook groups -f yaml
->    opencli instagram search "query" -f yaml     # 用户搜索
+>    opencli instagram search "query" -f yaml     # kullanıcı arama
 >    opencli instagram profile nasa -f yaml
->    opencli instagram user nasa -f yaml          # 指定用户最近帖子
+>    opencli instagram user nasa -f yaml          # belirli kullanıcının son gönderileri
 >    ```
 >
-> Facebook Groups 当前只承诺读取用户登录后可见的群组列表/最近动态，不承诺任意群帖子和评论 API。Instagram 的 search 是用户搜索，不是全站帖子关键词搜索；若提示 429/登录错误，先让用户在 Chrome 里重新登录并降低频率。
+> Facebook Groups şu an sadece giriş yapan kullanıcının görebildiği grup listesini / son hareketleri okumayı vaat eder; herhangi bir grubun gönderi ve yorumları garanti değildir. Instagram `search` kullanıcı aramasıdır, site genelinde gönderi araması değildir. 429 ya da giriş hatası gelirse kullanıcıdan Chrome'da tekrar giriş yapmasını iste ve istek sıklığını düşür.
 
-**雪球 / Xueqiu (股票行情 + 热门帖子):**
-> "雪球需要登录后的 Cookie。请先在 Chrome 里登录 xueqiu.com，然后运行："
+**Xueqiu (hisse fiyatları + popüler gönderiler):**
+> "Xueqiu giriş Cookie'si istiyor. Önce Chrome'da xueqiu.com'a giriş yap, sonra şunu çalıştıracağım:"
 
 ```bash
 agent-reach configure --from-browser chrome --platform xueqiu
 ```
 
-> 只会读取并保存雪球需要的最小 Cookie；不会顺带读取其他平台。
+> Sadece Xueqiu'nun ihtiyaç duyduğu en az Cookie okunur ve kaydedilir; başka platformlar okunmaz.
 
-**小宇宙播客 / Xiaoyuzhou Podcast (Groq Whisper):**
-> "小宇宙播客转文字已默认安装，只需要一个免费的 Groq API Key。"
+**Xiaoyuzhou podcast (Groq Whisper):**
+> "Xiaoyuzhou podcast'lerini yazıya dökme aracı zaten kurulu. Sadece ücretsiz bir Groq API anahtarı lazım."
 
-脚本已随 Agent Reach 自动安装，用户只需提供 Key：
+Betik Agent Reach ile otomatik kurulur, kullanıcının sadece anahtar vermesi yeterli:
 
 ```bash
 agent-reach configure groq-key
 ```
 
-> **获取 Groq API Key（免费、无需信用卡、30 秒搞定）：**
-> 1. 打开 https://console.groq.com
-> 2. 用 Google/GitHub 账号登录（或注册）
-> 3. 左侧菜单 → API Keys → Create API Key
-> 4. 复制 Key（以 `gsk_` 开头），发给 Agent 即可
+> **Groq API anahtarı alma (ücretsiz, kredi kartı gerekmez, 30 saniye):**
+> 1. https://console.groq.com adresini aç
+> 2. Google/GitHub hesabıyla giriş yap (ya da kayıt ol)
+> 3. Soldaki menü → API Keys → Create API Key
+> 4. `gsk_` ile başlayan anahtarı kopyala, ajana ver (gizli giriş istemine yapıştır)
 >
-> **使用方式：**
-> 用户发一个小宇宙链接给 Agent，Agent 自动调用：
+> **Kullanım:**
+> Kullanıcı bir Xiaoyuzhou linki verir, ajan şunu çalıştırır:
 > ```bash
 > bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh https://www.xiaoyuzhoufm.com/episode/xxxxx
 > ```
 >
-> 自动下载音频 → 转码切片 → Groq Whisper 转录 → 输出完整中文文字稿。
+> Sesi indirir → dönüştürüp parçalar → Groq Whisper ile yazıya döker → tam metni çıkarır.
 >
-> **免费额度和限制：**
-> - 每小时约 2 小时音频（7200 秒），超出后等 15 分钟自动恢复
-> - 日常听几期播客完全够用
-> - 转录质量高（Whisper large-v3），但不区分说话人
-> - 2 小时以上的播客建议分批处理
+> **Ücretsiz kota ve sınırlar:**
+> - Saatte yaklaşık 2 saatlik ses (7200 saniye); aşılırsa 15 dakika sonra kendiliğinden açılır
+> - Günlük birkaç bölüm için fazlasıyla yeterli
+> - Kalite yüksek (Whisper large-v3) ama konuşmacıları ayırmaz
+> - 2 saatten uzun bölümleri parça parça işle
 
-**LinkedIn (可选 — mcp-server-linkedin):**
-> "LinkedIn 基本内容可通过 Jina Reader 读取。完整功能（Profile 详情、人才与职位搜索）需要 mcp-server-linkedin。"
+**LinkedIn (isteğe bağlı — mcp-server-linkedin):**
+> "LinkedIn'in temel içeriği Jina Reader ile okunabilir. Tam özellikler (profil detayı, kişi ve iş arama) için mcp-server-linkedin gerekir."
 
-> **配置方式（推荐 stdio）：**
-> 先按官方说明安装 `uv`（会同时提供 `uvx`）：
+> **Kurulum (stdio önerilir):**
+> Önce resmi talimatlarla `uv` kur (`uvx` de onunla gelir):
 > https://docs.astral.sh/uv/getting-started/installation/
 >
 > ```bash
 > mcporter config add linkedin --command uvx --arg mcp-server-linkedin@latest --env UV_HTTP_TIMEOUT=300 --scope home
 > ```
 >
-> `uvx` 会按需获取并启动最新版服务，无需另装 Python 包或常驻 HTTP 服务。
+> `uvx` en güncel servisi gerektiğinde indirip başlatır; ayrıca Python paketi ya da sürekli çalışan HTTP servisi gerekmez.
 >
-> **首次登录（需要浏览器界面）：**
+> **İlk giriş (tarayıcı ekranı gerekir):**
 > ```bash
 > uvx mcp-server-linkedin@latest --login
 > ```
-> 浏览器弹出后手动登录 LinkedIn；登录态会保存到 `~/.linkedin-mcp/profile/`。无桌面的服务器需在 VNC 等可见桌面中运行同一条登录命令。
+> Açılan tarayıcıda LinkedIn'e **kullanıcı kendisi** giriş yapar; oturum `~/.linkedin-mcp/profile/` klasörüne kaydedilir. Ekranı olmayan sunucularda aynı komut VNC gibi görünür bir masaüstünde çalıştırılmalıdır.
 >
-> 详见 https://github.com/stickerdaniel/linkedin-mcp-server
+> Detaylar: https://github.com/stickerdaniel/linkedin-mcp-server
 
-### Step 4: Final check
+### Adım 8: Son kontrol ve rapor
 
-Run `agent-reach doctor` one final time and report the results to your user.
+Son kez çalıştır:
 
-### Step 5: Set up daily monitoring (OpenClaw only)
-
-If you are running inside **OpenClaw**, ask your user:
-
-> "Agent Reach 安装好了。要不要我设一个每天自动检查的任务？它会帮你盯着这些渠道是否正常、有没有新版本。有问题才会通知你，没问题不打扰。"
-
-If the user agrees, create a **cron job** (daily, `sessionTarget: "isolated"`, `delivery: "announce"`) with this task:
-
-```
-运行 agent-reach watch 命令。
-如果输出包含"全部正常"，不需要通知用户，静默结束。
-如果输出包含问题（❌ ⚠️）或新版本（🆕），把完整报告发给用户，并建议修复方案。
-如果有新版本可用，问用户是否要升级（把这句话发给用户的 Agent 即可完整更新：帮我更新 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md）。
+```bash
+agent-reach doctor
 ```
 
-If the user wants a different agent to handle it, let them choose.
+Sonra kullanıcıya **Türkçe**, kısa ve basit bir rapor ver:
+
+1. Kaç kanal çalışıyor (✅), hangileri çalışmıyor (❌/⚠️).
+2. Birden fazla yolu olan platformlarda şu an hangi yol kullanılıyor (`agent-reach doctor --json` içindeki `active_backend`).
+3. OpenCLI durumu: kurulu mu, eklenti bağlı mı, yedek olarak hazır mı.
+4. Kullanıcının hâlâ yapması gerekenler (ör. Chrome eklentisini eklemek, bir siteye giriş yapmak, Cookie vermek).
+5. Deneyebileceği 2-3 örnek istek (ör. "Bu YouTube videosunu özetle", "Reddit'te X hakkında ne konuşuluyor?").
+
+### Adım 9: Günlük izleme (sadece OpenClaw)
+
+**OpenClaw** içinde çalışıyorsan kullanıcıya sor:
+
+> "Agent Reach kuruldu. Her gün otomatik kontrol eden bir görev ayarlayayım mı? Kanalların çalışıp çalışmadığını ve yeni sürüm olup olmadığını takip eder. Sadece sorun olursa haber verir, yoksa rahatsız etmez."
+
+Kullanıcı kabul ederse şu görevle bir **cron job** oluştur (günlük, `sessionTarget: "isolated"`, `delivery: "announce"`):
+
+```
+agent-reach watch komutunu çalıştır.
+Çıktıda sorun (❌ ⚠️) ya da yeni sürüm (🆕) yoksa kullanıcıya haber verme, sessizce bitir.
+Sorun ya da yeni sürüm varsa tam raporu kullanıcıya Türkçe gönder ve çözüm öner.
+Yeni sürüm varsa kullanıcıya güncellemek isteyip istemediğini sor (şu cümle ajana verilirse tam güncelleme yapılır: Şu talimatları oku ve Agent Reach'i benim için güncelle: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md).
+```
+
+Kullanıcı bu işi başka bir ajana vermek isterse seçimi ona bırak.
 
 ---
 
-## Quick Reference
+## Hızlı başvuru
 
-| Command | What it does |
-|---------|-------------|
-| `agent-reach install --env=auto` | Read-only dependency and channel check (default) |
-| `agent-reach install --env=auto --system` | Explicitly install/configure core external tools |
-| `agent-reach install --env=auto --system --channels=twitter,xiaohongshu` | Install approved optional channels |
-| `agent-reach install --env=auto --system --channels=all` | Install everything after explicit approval |
-| `agent-reach install --env=auto --safe` | Compatibility alias for the safe default |
-| `agent-reach install --env=auto --dry-run` | Preview what would be done |
-| `agent-reach doctor` | Show channel status |
-| `agent-reach watch` | Quick health + update check (for scheduled tasks) |
-| `agent-reach check-update` | Check for new versions |
-| `agent-reach configure twitter-cookies` | 通过隐藏输入保存 Twitter Cookie；直接调用仍需显式环境变量 |
-| `agent-reach configure proxy` | 通过隐藏输入保存代理地址；不是自动解锁开关 |
-| `agent-reach configure groq-key` | 通过隐藏输入配置小宇宙转录 Key |
+| Komut | Ne yapar |
+|---|---|
+| `agent-reach install --env=auto` | Sadece bağımlılık ve kanal kontrolü (varsayılan) |
+| `agent-reach install --env=auto --system` | Çekirdek harici araçları açık izinle kurar/ayarlar |
+| `agent-reach install --env=auto --system --channels=twitter,xiaohongshu` | Onaylanan isteğe bağlı kanalları kurar |
+| `agent-reach install --env=auto --system --channels=all` | Açık onaydan sonra her şeyi kurar |
+| `agent-reach install --env=auto --safe` | Güvenli varsayılanın uyumluluk takma adı |
+| `agent-reach install --env=auto --dry-run` | Ne yapılacağını önizler |
+| `agent-reach skill --install` | Skill dosyalarını ajan klasörlerine kurar |
+| `agent-reach doctor` | Kanal durumunu gösterir |
+| `agent-reach watch` | Hızlı sağlık + güncelleme kontrolü (zamanlanmış görevler için) |
+| `agent-reach check-update` | Yeni sürüm var mı bakar |
+| `agent-reach configure twitter-cookies` | Twitter Cookie'sini gizli girişle kaydeder; doğrudan çağrı için yine ortam değişkenleri gerekir |
+| `agent-reach configure proxy` | Proxy adresini gizli girişle kaydeder; otomatik açma anahtarı değildir |
+| `agent-reach configure groq-key` | Xiaoyuzhou yazıya dökme anahtarını gizli girişle kaydeder |
+| `opencli doctor` | OpenCLI ve Chrome eklentisi bağlantısını kontrol eder |
 
-After installation, use upstream tools directly. See SKILL.md for the full command reference:
+Kurulumdan sonra üst akış araçlarını doğrudan kullan. Tam komut listesi SKILL.md içinde:
 
-| Platform | Upstream Tool | Example |
-|----------|--------------|---------|
-| Twitter/X | `twitter`（备选 `opencli`） | 设置 `TWITTER_AUTH_TOKEN` / `TWITTER_CT0` 后运行 `twitter search "query" -n 10` |
+| Platform | Üst akış aracı | Örnek |
+|---|---|---|
+| Twitter/X | `twitter` (yedek `opencli`) | `TWITTER_AUTH_TOKEN` / `TWITTER_CT0` ayarladıktan sonra `twitter search "query" -n 10` |
 | YouTube | `yt-dlp` | `yt-dlp --dump-json URL` |
-| Bilibili | `bili`（字幕走 `opencli`） | `bili search "query" --type video` / `opencli bilibili subtitle BVxxx` |
-| Reddit | `opencli`（备选 `rdt`） | `opencli reddit search "query" -f yaml` / `rdt read POST_ID` |
+| Bilibili | `bili` (altyazı `opencli` ile) | `bili search "query" --type video` / `opencli bilibili subtitle BVxxx` |
+| Reddit | `opencli` (yedek `rdt`) | `opencli reddit search "query" -f yaml` / `rdt read POST_ID` |
 | Facebook | `opencli` | `opencli facebook search "query" -f yaml` |
 | Instagram | `opencli` | `opencli instagram user nasa -f yaml` |
 | GitHub | `gh` | `gh search repos "query"` |
 | Web | `curl` + Jina | `curl -s "https://r.jina.ai/URL"` |
-| Exa Search | `mcporter` | `mcporter call exa.web_search_exa query="..." numResults=5` |
-| 小红书 | `opencli`（服务器 `mcporter`） | `opencli xiaohongshu search "query" -f yaml` |
-| 小宇宙播客 | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
+| Erişilemeyen site (yedek) | `opencli` | `opencli web read --url URL --stdout` |
+| Exa araması | `mcporter` | `mcporter call exa.web_search_exa query="..." numResults=5` |
+| XiaoHongShu | `opencli` (sunucuda `mcporter`) | `opencli xiaohongshu search "query" -f yaml` |
+| Xiaoyuzhou podcast | `transcribe.sh` | `bash ~/.agent-reach/tools/xiaoyuzhou/transcribe.sh <URL>` |
 | LinkedIn | `mcporter` | `mcporter call linkedin.get_person_profile linkedin_username="..."` |
 | RSS | `feedparser` | `python3 -c "import feedparser; ..."` |
 
-> 多后端平台以 `agent-reach doctor --json` 的 `active_backend` 为准。
+> Birden fazla yolu olan platformlarda `agent-reach doctor --json` içindeki `active_backend` esas alınır.
+
+---
+
+Teşekkürler: Bu rehber [Panniantong/Agent-Reach](https://github.com/Panniantong/Agent-Reach) projesinin kurulum rehberinden Türkçeleştirildi. OpenCLI: [jackwener/opencli](https://github.com/jackwener/opencli).

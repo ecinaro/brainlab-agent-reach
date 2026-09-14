@@ -12,9 +12,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agent_reach.backends.opencli import OpenCLIStatus
 from agent_reach.channels.web import _UA, WebChannel
 
 _MAX_RESPONSE_BYTES = 5 * 1024 * 1024
+_OPENCLI_STATUS = "agent_reach.backends.opencli.opencli_status"
 
 
 def _resp(body=b"# Example\nfull text\n"):
@@ -39,17 +41,94 @@ def test_can_handle_accepts_any_url():
         assert channel.can_handle(sample) is True, sample
 
 
-# --- check: ready without any network probe (零开销兜底) ---
+# --- check: ready without any network probe (zero-overhead fallback) ---
 
 def test_check_is_ok_and_touches_no_network():
     channel = WebChannel()
-    with patch("urllib.request.urlopen") as mock_open:
+    with patch("urllib.request.urlopen") as mock_open, patch(
+        _OPENCLI_STATUS, return_value=OpenCLIStatus(installed=False)
+    ):
         status, message = channel.check()
     assert status == "ok"
     assert channel.active_backend == "Jina Reader"
     assert "Jina Reader" in message
     # The fallback channel must stay zero-overhead: no probing on check().
     mock_open.assert_not_called()
+
+
+# --- check: OpenCLI is reported as the general fallback, never the status ---
+
+def test_web_lists_opencli_as_fallback_backend_but_stays_zero_config():
+    assert WebChannel.backends == ["Jina Reader", "OpenCLI"]
+    assert WebChannel.tier == 0
+
+
+def _check_with_opencli(opencli_state):
+    channel = WebChannel()
+    kwargs = (
+        {"side_effect": opencli_state}
+        if isinstance(opencli_state, Exception)
+        else {"return_value": opencli_state}
+    )
+    with patch(_OPENCLI_STATUS, **kwargs) as mock_status, patch(
+        "subprocess.run", side_effect=AssertionError("web check must not spawn")
+    ):
+        status, message = channel.check()
+    return channel, status, message, mock_status
+
+
+def test_check_reports_ready_opencli_fallback():
+    channel, status, message, mock_status = _check_with_opencli(
+        OpenCLIStatus(installed=True, daemon_running=True, extension_connected=True,
+                      version="1.8.6")
+    )
+    assert status == "ok"
+    assert channel.active_backend == "Jina Reader"
+    assert "Jina Reader" in message
+    assert "OpenCLI hazır (Chrome eklentisi bağlı)" in message
+    # Short probe timeout keeps doctor fast.
+    assert mock_status.call_args.kwargs["timeout"] <= 5
+
+
+def test_check_suggests_opencli_install_when_missing():
+    channel, status, message, _ = _check_with_opencli(OpenCLIStatus(installed=False))
+    assert status == "ok"
+    assert channel.active_backend == "Jina Reader"
+    assert "Yedek (isteğe bağlı)" in message
+    assert "agent-reach install --system --channels opencli" in message
+    assert "Chrome eklentisi" in message
+
+
+def test_check_flags_disconnected_opencli_extension():
+    channel, status, message, _ = _check_with_opencli(
+        OpenCLIStatus(installed=True, daemon_running=True, extension_connected=False,
+                      version="1.8.6")
+    )
+    assert status == "ok"
+    assert channel.active_backend == "Jina Reader"
+    assert "Chrome eklentisi bağlı değil" in message
+    assert "chrome://extensions" in message
+    assert "hazır" not in message
+
+
+def test_check_warns_briefly_when_opencli_is_broken():
+    channel, status, message, _ = _check_with_opencli(
+        OpenCLIStatus(installed=True, broken=True, hint="npm install -g ...")
+    )
+    assert status == "ok"
+    assert channel.active_backend == "Jina Reader"
+    assert "Yedek uyarısı" in message
+    assert "OpenCLI çalıştırılamıyor" in message
+    # The multi-line reinstall hint belongs to the opencli channels, not web.
+    assert "npm install" not in message
+
+
+def test_check_survives_unexpected_opencli_probe_errors():
+    channel, status, message, _ = _check_with_opencli(RuntimeError("probe exploded"))
+    assert status == "ok"
+    assert channel.active_backend == "Jina Reader"
+    assert "Yedek (isteğe bağlı)" in message
+    assert "probe exploded" not in message
 
 
 # --- read: URL normalisation + Jina Reader request shape ---
@@ -188,7 +267,7 @@ def test_read_rejects_high_confidence_antibot_pages(body):
     with patch(
         "urllib.request.urlopen", return_value=_resp(body.encode("utf-8"))
     ) as mock_open:
-        with pytest.raises(RuntimeError, match="反爬验证页"):
+        with pytest.raises(RuntimeError, match="bot doğrulama sayfası"):
             channel.read("https://example.com/protected")
 
     mock_open.assert_called_once()

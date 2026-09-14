@@ -23,19 +23,23 @@ Backend routing semantics:
 """
 
 from abc import ABC, abstractmethod
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 
 class Channel(ABC):
     """Base class for all channels."""
 
     name: str = ""                    # e.g. "youtube"
-    description: str = ""             # e.g. "YouTube 视频和字幕"
+    description: str = ""             # e.g. "YouTube videoları ve altyazıları"
     backends: List[str] = []          # ordered candidates — backends[0] = preferred
     tier: int = 0                     # 0=zero-config, 1=needs free key, 2=needs setup
 
     #: Backend currently serving this channel; set by check(), None = unavailable.
     active_backend: Optional[str] = None
+
+    #: Legacy backend names (e.g. pre-localization Chinese labels) mapped to
+    #: their current name, so an old `<channel>_backend` override keeps working.
+    backend_aliases: Dict[str, str] = {}
 
     @abstractmethod
     def can_handle(self, url: str) -> bool:
@@ -52,6 +56,8 @@ class Channel(ABC):
         candidates = list(self.backends)
         override = config.get(f"{self.name}_backend") if config else None
         if override:
+            if isinstance(override, str):
+                override = self.backend_aliases.get(override, override)
             for i, b in enumerate(candidates):
                 if b == override or b.startswith(override):
                     candidates.insert(0, candidates.pop(i))
@@ -66,5 +72,5 @@ class Channel(ABC):
         Subclasses with external backends must really probe them (see
         agent_reach.probe.probe_command) and set self.active_backend.
         """
-        self.active_backend = self.backends[0] if self.backends else "内置"
-        return "ok", f"{'、'.join(self.backends) if self.backends else '内置'}"
+        self.active_backend = self.backends[0] if self.backends else "yerleşik"
+        return "ok", f"{', '.join(self.backends) if self.backends else 'yerleşik'}"

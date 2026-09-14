@@ -1,73 +1,78 @@
-# 小红书配置指南
+# XiaoHongShu kurulum rehberi
 
-## 功能说明
-读取和搜索小红书笔记。桌面优先使用 OpenCLI，服务器使用
-[xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp)；
-xhs-cli 仅作为已安装用户的存量备选。
+## Ne işe yarar?
+XiaoHongShu notlarını okur ve arar. Masaüstünde önce OpenCLI kullanılır, sunucuda
+[xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp);
+xhs-cli sadece zaten kurmuş kullanıcılar için eski bir yedek yoldur.
 
-## 前置条件
-- OpenCLI：用户已经存在且明确控制的 Chrome 小红书会话
-- xiaohongshu-mcp / 存量工具：Cookie-Editor 浏览器扩展
+## Ön koşullar
+- OpenCLI: Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği bir XiaoHongShu oturumu
+- xiaohongshu-mcp / eski araçlar: Cookie-Editor tarayıcı eklentisi
 
-## 认证边界
+## Kimlik doğrulama sınırı
 
-Agent Reach 不替用户执行小红书登录，也不读取浏览器 Cookie。
+Agent Reach XiaoHongShu'ya kullanıcı adına giriş yapmaz ve tarayıcı Cookie'si okumaz.
 
-OpenCLI 只使用用户已经存在且明确控制的 Chrome 会话。
-`agent-reach configure xhs-cookies` 不会把 Cookie 注入 OpenCLI 或 Chrome。
-如果没有现成会话，不要自动登录；改用 Cookie-Editor 手工导出后配置
-xiaohongshu-mcp 或存量工具：
+OpenCLI yalnızca Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği oturumu kullanır.
+`agent-reach configure xhs-cookies` Cookie'yi OpenCLI'a veya Chrome'a aktarmaz.
+Hazır oturum yoksa otomatik giriş yapma; Cookie-Editor ile elle dışa aktarıp
+xiaohongshu-mcp ya da eski araçları yapılandır:
 
-1. 在 Chrome 中安装 [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) 扩展
-2. 用户自行在 xiaohongshu.com 准备要导出的会话
-3. 点击 Cookie-Editor 图标 → Export → Header String
-4. 把导出的字符串发给 Agent，运行：
+1. Chrome'a [Cookie-Editor](https://chromewebstore.google.com/detail/cookie-editor/hlkenndednhfkekhgcdicdfddnkalmdm) eklentisini kur
+2. Kullanıcı dışa aktarılacak oturumu xiaohongshu.com üzerinde kendisi hazırlar
+3. Cookie-Editor simgesine tıkla → Export → Header String
+4. Dışa aktarılan metni ajana ver ve çalıştır:
 
 ```bash
 agent-reach configure xhs-cookies
 agent-reach doctor
 ```
 
-该显式命令会保存/导入用户提供的 xiaohongshu.com 同域 Cookie 集；执行前请
-确认 Cookie 名称和范围。非 xiaohongshu.com 域 Cookie 会被忽略。
+Bu açık komut, kullanıcının verdiği xiaohongshu.com alan adına ait Cookie setini kaydeder/içe aktarır. Çalıştırmadan önce
+Cookie adlarını ve kapsamını doğrula. xiaohongshu.com dışındaki alan adlarına ait Cookie'ler yok sayılır.
 
-如果 xiaohongshu-mcp 容器正在运行，配置命令会把 Cookie 导入容器；否则会写入
-owner-only 的本地文件，并打印后续手工导入路径。
+xiaohongshu-mcp konteyneri çalışıyorsa ayar komutu Cookie'yi konteynere aktarır; çalışmıyorsa sadece sahibinin
+okuyabildiği (owner-only) yerel bir dosyaya yazar ve sonradan elle içe aktarma yolunu ekrana basar.
 
-## 使用示例
+## Kullanım örnekleri
 
-先按 `agent-reach doctor --json` 的 `active_backend` 选择命令。存量 xhs-cli 示例：
+Önce `agent-reach doctor --json` çıktısındaki `active_backend`'e göre komutu seç. Eski xhs-cli örnekleri:
 
-搜索笔记：
+Not ara:
 ```bash
-xhs search "关键词"
+xhs search "anahtar kelime"
 ```
 
-阅读笔记详情：
+Not detayını oku:
 ```bash
 xhs read NOTE_ID
 ```
 
-查看评论：
+Yorumları gör:
 ```bash
 xhs comments NOTE_ID
 ```
 
-## 常见问题
+OpenCLI aktifse:
+```bash
+opencli xiaohongshu search "anahtar kelime" -f yaml
+```
 
-**Q: Cookie 过期了？**
-A: 重新通过 Cookie-Editor 手工导出，再运行
-`agent-reach configure xhs-cookies`，并粘贴到隐藏输入提示。
+## Sık sorulanlar
 
-**Q: 小红书提示 IP 风险？**
-A: 推荐使用住宅代理：`export HTTP_PROXY="http://user:pass@ip:port"`。
+**S: Cookie'nin süresi mi doldu?**
+C: Cookie-Editor ile tekrar elle dışa aktar, sonra
+`agent-reach configure xhs-cookies` çalıştır ve gizli giriş istemine yapıştır.
 
-**Q: xhs-cli 不支持我的系统？**
-A: 确保 Python 3.10+ 和 pipx 已安装。运行 `pipx install xiaohongshu-cli` 即可。
+**S: XiaoHongShu IP riski uyarısı mı veriyor?**
+C: Konut (residential) proxy önerilir: `export HTTP_PROXY="http://user:pass@ip:port"`.
 
-## 服务器方案：Docker MCP
+**S: xhs-cli sistemimi desteklemiyor mu?**
+C: Python 3.10+ ve pipx'in kurulu olduğundan emin ol. Sonra `pipx install xiaohongshu-cli` çalıştır.
 
-如果你已经在使用 [xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) Docker 方案，它也能正常工作：
+## Sunucu çözümü: Docker MCP
+
+[xiaohongshu-mcp](https://github.com/xpzouying/xiaohongshu-mcp) Docker çözümünü zaten kullanıyorsan o da çalışır:
 
 ```bash
 docker run -d \
@@ -78,4 +83,4 @@ docker run -d \
 mcporter config add xiaohongshu http://localhost:18060/mcp --scope home
 ```
 
-该服务器后端使用上面的 Cookie-Editor 手工导出流程。
+Bu sunucu yolu yukarıdaki Cookie-Editor ile elle dışa aktarma akışını kullanır.

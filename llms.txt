@@ -1,32 +1,26 @@
-# Agent Reach
+# Agent Reach (Türkçe)
 
-> Give your AI agent eyes to see the internet. Agent Reach installs, routes, and health-checks upstream tools for 15 platforms — Twitter/X, Reddit, Facebook, Instagram, YouTube, GitHub, Bilibili, XiaoHongShu, LinkedIn, V2EX, Xueqiu, Xiaoyuzhou Podcast, RSS, web search, and any web page. One install, zero API fees.
+> Yapay zekâ ajanına internet gözü tak. Agent Reach, 15 platform için üst akış araçlarını kurar, yönlendirir ve sağlık kontrolü yapar: Twitter/X, Reddit, Facebook, Instagram, YouTube, GitHub, Bilibili, XiaoHongShu, LinkedIn, V2EX, Xueqiu, Xiaoyuzhou podcast, RSS, web araması ve herhangi bir web sayfası. Erişilemeyen siteler (giriş duvarı, Cloudflare/captcha, boş JS sayfaları, 401/403/429) için OpenCLI ile kullanıcının kendi Chrome oturumu genel yedek olarak kullanılır. Varsayılan dil Türkçe. Bu repo Panniantong/Agent-Reach projesinin Türkçe çatalıdır.
 
-## Quick Start
+## Hızlı başlangıç
 
-- [Installation Guide](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): Step-by-step setup instructions for AI agents
-- [README (中文)](https://github.com/Panniantong/Agent-Reach/blob/main/README.md): Full documentation in Chinese
-- [README (English)](https://github.com/Panniantong/Agent-Reach/blob/main/docs/README_en.md): Full documentation in English
+- [Kurulum rehberi](https://github.com/ecinaro/brainlab-agent-reach/blob/main/docs/install.md): Yapay zekâ ajanları için adım adım kurulum talimatları (Türkçe)
+- [README (Türkçe)](https://github.com/ecinaro/brainlab-agent-reach/blob/main/README.md): Ana doküman
+- [README (English)](https://github.com/ecinaro/brainlab-agent-reach/blob/main/docs/README_en.md): İngilizce doküman
+- [README (Çince)](https://github.com/ecinaro/brainlab-agent-reach/blob/main/docs/README_zh.md): Orijinal Çince doküman
+- [OpenCLI Chrome kurulumu](https://github.com/ecinaro/brainlab-agent-reach/blob/main/docs/opencli-chrome-kurulum.md): Chrome eklentisi ve giriş adımları
 
-## Core Commands
+## Temel komutlar
 
-- [CLI Usage](https://github.com/Panniantong/Agent-Reach/blob/main/docs/install.md): `agent-reach doctor --json` shows the active backend; agents then call upstream tools directly (`opencli`, `twitter`, `bili`, `yt-dlp`, `gh`, `mcporter`, etc.).
+- `agent-reach install --env=auto` (sadece kontrol) / `--system` (açık izinle kurulum), `agent-reach skill --install`, `agent-reach doctor --json` (aktif backend). Ajanlar sonra üst akış araçlarını doğrudan çağırır (`opencli`, `twitter`, `bili`, `yt-dlp`, `gh`, `mcporter` vb.).
+- Yedek: `opencli web read --url <URL> --stdout`, `opencli doctor`.
 
-## Key Features
+## Sorun giderme
 
-- Read any URL: tweets, Reddit posts, Facebook pages/feed/groups, Instagram profiles/posts, YouTube videos (transcripts), GitHub repos, articles, XiaoHongShu notes, Bilibili videos, RSS feeds
-- Search/discover across platforms: Twitter/X, Reddit, Facebook, Instagram user search, GitHub, YouTube, Bilibili, XiaoHongShu, LinkedIn, V2EX, Xueqiu, Web (via Exa)
-- Self-diagnosis: `agent-reach doctor` checks what works and what needs setup
-- Auto-installs dependencies: `agent-reach install --env=auto`
-- Browser-session / cookie auth for platforms that require login (Twitter, Reddit, Facebook, Instagram, XiaoHongShu, Xueqiu)
-- Proxy support for platforms that block server IPs (Reddit, Twitter)
-- Zero API fees: all backends are free and open-source (OpenCLI, twitter-cli, rdt-cli, bili-cli, yt-dlp, Jina Reader, mcporter/Exa, etc.)
+- [Sorun giderme rehberi](https://github.com/ecinaro/brainlab-agent-reach/blob/main/docs/troubleshooting.md): OpenCLI çıkış kodları (69, 75, 77) dahil sık sorunlar
 
-## Troubleshooting
+## İsteğe bağlı
 
-- [Troubleshooting Guide](https://github.com/Panniantong/Agent-Reach/blob/main/docs/troubleshooting.md): Common issues and solutions
-
-## Optional
-
-- [SKILL.md](https://github.com/Panniantong/Agent-Reach/blob/main/agent_reach/skill/SKILL.md): Integration guide for AI agent frameworks (OpenClaw, Claude Code, etc.)
-- [PyPI Package](https://pypi.org/project/agent-reach/): `pip install agent-reach`
+- [SKILL.md](https://github.com/ecinaro/brainlab-agent-reach/blob/main/agent_reach/skill/SKILL.md): Ajan çatıları için entegrasyon rehberi (Türkçe; İngilizce SKILL_en.md, Çince SKILL_zh.md)
+- [OpenCLI yedek karar sırası](https://github.com/ecinaro/brainlab-agent-reach/blob/main/agent_reach/skill/references/opencli-fallback.md)
+- Kurulum: `pip install https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip` (PyPI'daki `agent-reach` paketi bu proje değildir)

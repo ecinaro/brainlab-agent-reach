@@ -1,29 +1,32 @@
-# 职场招聘
+# Kariyer ve iş ilanları
 
-LinkedIn。
+LinkedIn.
 
 ## LinkedIn
 
 ```bash
-# 获取个人资料
+# Kişi profilini getir
 mcporter call linkedin.get_person_profile linkedin_username="username" sections="experience,education"
 
-# 搜索人才
+# Kişi ara
 mcporter call linkedin.search_people keywords="AI engineer" location="Shanghai"
 
-# 获取公司资料
+# Şirket profilini getir
 mcporter call linkedin.get_company_profile company_name="openai" sections="posts,jobs"
 
-# 搜索职位
+# İş ilanı ara
 mcporter call linkedin.search_jobs keywords="software engineer" location="Remote" max_pages=2
 ```
 
-> **需要登录**: 首次使用前运行 `uvx mcp-server-linkedin@latest --login`，保存有效登录态。
+> **Giriş gerekir**: İlk kullanımdan önce `uvx mcp-server-linkedin@latest --login` çalıştırıp
+> geçerli bir oturum kaydet.
 
-### Fallback 方案
+### Yedek yöntem
 
-如果 MCP 不可用，可以用 Jina Reader：
+MCP kullanılamıyorsa Jina Reader ile oku:
 
 ```bash
 curl -s "https://r.jina.ai/https://linkedin.com/in/username"
 ```
+
+Giriş duvarına takılırsa [opencli-fallback.md](opencli-fallback.md) merdivenini izle.

@@ -93,7 +93,7 @@ def main():
     p_install.add_argument("--channels", default="",
                            help="Comma-separated optional channels to install "
                                 "(twitter,xiaoyuzhou,xueqiu,xiaohongshu,"
-                                "reddit,facebook,instagram,bilibili,linkedin,all)")
+                                "reddit,facebook,instagram,bilibili,linkedin,opencli,web,all)")
 
     # ── configure ──
     p_conf = sub.add_parser("configure", help="Set a config value or auto-extract from browser")
@@ -273,8 +273,9 @@ def _cmd_install(args):
         "opencli":     _install_opencli_deps,  # cross-channel backend, desktop only
         # xueqiu: cookie-only, no install step
         # linkedin: manual setup, no auto-install
+        # web: zero-config (Jina Reader); OpenCLI is only suggested as fallback
     }
-    supported_channels = set(CHANNEL_INSTALLERS) | {"xueqiu", "linkedin"}
+    supported_channels = set(CHANNEL_INSTALLERS) | {"xueqiu", "linkedin", "web"}
     raw_channels = [
         channel.strip().lower()
         for channel in args.channels.split(",")
@@ -340,7 +341,7 @@ def _cmd_install(args):
         else:
             config.set("proxy", args.proxy)
             config.set("bilibili_proxy", args.proxy)  # legacy key
-            print("✅ 代理已保存（Agent 访问受限网络时使用）")
+            print("✅ Proxy kaydedildi (Agent kısıtlı ağlara erişirken kullanır)")
 
     # ── Install core system dependencies (lightweight, always) ──
     print()
@@ -363,8 +364,18 @@ def _cmd_install(args):
 
     if server_skipped_opencli_channels:
         print()
-        print("  -- OpenCLI 需要桌面环境 + Chrome，服务器环境跳过："
+        print("  -- OpenCLI masaüstü ortamı + Chrome gerektirir, sunucu ortamında atlandı: "
               f"{', '.join(sorted(server_skipped_opencli_channels))}")
+
+    if (
+        "web" in requested_channels
+        and not requested_channels & OPENCLI_ONLY_CHANNELS
+        and env != "server"
+    ):
+        # Suggestion only: never install npm packages for the zero-config web channel.
+        print()
+        print("  Tip: web kurulumsuz çalışır (Jina Reader); giriş/Cloudflare/JS engelli "
+              "siteler için yedek: agent-reach install --system --channels opencli")
 
     # ── Install optional channels (only if --channels specified) ──
     if requested_channels and not dry_run and not safe_mode:
@@ -409,9 +420,9 @@ def _cmd_install(args):
     # Environment-specific advice
     if env == "server":
         print()
-        print("Tip: 部分平台对服务器 IP 有风控。")
-        print("   Reddit 必须登录态（rdt-cli + Cookie，见 doctor 提示），中国大陆网络还需代理。")
-        print("   保存代理供 Agent 使用：agent-reach configure proxy（隐藏输入）")
+        print("Tip: Bazı platformlar sunucu IP'lerine karşı risk kontrolü uygular.")
+        print("   Reddit giriş yapılmış oturum ister (rdt-cli + Cookie, doctor ipuçlarına bak); Çin anakarası ağlarında ayrıca proxy gerekir.")
+        print("   Agent için proxy kaydet: agent-reach configure proxy (gizli giriş)")
         print("   Cheap option: https://www.webshare.io ($1/month)")
 
     # Test channels
@@ -456,9 +467,9 @@ def _cmd_install(args):
 
             # Star reminder
             print()
-            print("如果 Agent Reach 帮到了你，给个 Star 让更多人发现它吧：")
-            print("   https://github.com/Panniantong/Agent-Reach")
-            print("   只需一秒，对独立开发者意义很大。谢谢！")
+            print("Agent Reach işine yaradıysa, daha çok kişi keşfetsin diye bir Star ver:")
+            print("   https://github.com/ecinaro/brainlab-agent-reach")
+            print("   Sadece bir saniye sürer, bağımsız geliştiriciler için çok değerli. Teşekkürler!")
             if not install_ok:
                 raise SystemExit(1)
     else:
@@ -466,26 +477,51 @@ def _cmd_install(args):
         print("Dry run complete. No changes were made.")
 
 
+#: Skill language code -> packaged resource. Turkish is the default SKILL.md.
+_SKILL_RESOURCES = {
+    "tr": "SKILL.md",
+    "en": "SKILL_en.md",
+    "zh": "SKILL_zh.md",
+}
+
+
+def _locale_language(value: str) -> str | None:
+    """Map a locale/env value (``en_US.UTF-8``, ``zh-CN``, ``tr``) to a skill language."""
+    normalized = value.strip().lower()
+    for prefixes, language in (
+        (("en", "english"), "en"),
+        (("zh", "chinese"), "zh"),
+        (("tr", "turkish", "türkçe"), "tr"),
+    ):
+        if normalized.startswith(prefixes):
+            return language
+    return None
+
+
+def _skill_language() -> str:
+    """Pick the skill language: AGENT_REACH_LANG, then LC_ALL/LC_MESSAGES/LANG.
+
+    The first variable naming a supported language (tr/en/zh) wins, so
+    ``AGENT_REACH_LANG=tr`` overrides an English system locale. Anything else
+    (unset, ``C``, ``POSIX``, other languages) falls back to Turkish.
+    """
+    for env_name in ("AGENT_REACH_LANG", "LC_ALL", "LC_MESSAGES", "LANG"):
+        language = _locale_language(os.environ.get(env_name, ""))
+        if language:
+            return language
+    return "tr"
+
+
+def _skill_resource_name() -> str:
+    """Packaged SKILL markdown for the selected language (default: SKILL.md)."""
+    return _SKILL_RESOURCES[_skill_language()]
+
+
 def _install_skill(force: bool = True):
     """Install Agent Reach as an agent skill for supported agent clients."""
     import importlib.resources
     import os
     import shutil
-
-    def _is_english_locale(value: str) -> bool:
-        normalized = value.strip().lower()
-        return normalized.startswith("en") or normalized.startswith("english")
-
-    def _skill_resource_name() -> str:
-        locale_candidates = (
-            os.environ.get("AGENT_REACH_LANG", ""),
-            os.environ.get("LC_ALL", ""),
-            os.environ.get("LC_MESSAGES", ""),
-            os.environ.get("LANG", ""),
-        )
-        if any(_is_english_locale(candidate) for candidate in locale_candidates):
-            return "SKILL_en.md"
-        return "SKILL.md"
 
     def _read_skill_markdown(skill_pkg):
         resource_name = _skill_resource_name()
@@ -855,8 +891,8 @@ def _install_system_deps():
             or installed_version < _JS_RUNTIMES_SUPPORTED_FROM
         ):
             print(
-                "  -- 未写入 yt-dlp JS runtime 配置：yt-dlp 缺失、过旧或"
-                "版本无法确认。先升级：python -m pip install -U "
+                "  -- yt-dlp JS runtime yapılandırması yazılmadı: yt-dlp eksik, çok eski "
+                "veya sürümü doğrulanamadı. Önce güncelle: python -m pip install -U "
                 '"yt-dlp[default]"'
             )
         else:
@@ -948,7 +984,7 @@ def _install_xiaoyuzhou_deps():
         print("  ✅ Groq API key configured")
     else:
         print("  -- Groq API key not set. Get free key at https://console.groq.com")
-        print("     Then run: agent-reach configure groq-key（隐藏输入）")
+        print("     Then run: agent-reach configure groq-key (gizli giriş)")
     return script_ok and ffmpeg_ok
 
 
@@ -994,20 +1030,20 @@ def _install_xhs_deps():
 
     print("Setting up XiaoHongShu...")
     if _detect_environment() == "server":
-        print("  服务器环境推荐 xiaohongshu-mcp：")
-        print("    1. 下载 binary：https://github.com/xpzouying/xiaohongshu-mcp/releases")
-        print("       （建议放到 ~/.agent-reach/tools/ 下）")
-        print("    2. 启动服务（首次运行会下载约 150MB 浏览器，请等待完成）")
-        print("    3. 用 Cookie-Editor 从 xiaohongshu.com 明确导出 Cookie")
-        print("       agent-reach configure xhs-cookies（粘贴到隐藏输入提示）")
-        print("    4. 接入：mcporter config add xiaohongshu http://localhost:18060/mcp --scope home")
-        print("    5. 验证：agent-reach doctor")
+        print("  Sunucu ortamı için önerilen: xiaohongshu-mcp")
+        print("    1. Binary'yi indir: https://github.com/xpzouying/xiaohongshu-mcp/releases")
+        print("       (~/.agent-reach/tools/ altına koyman önerilir)")
+        print("    2. Servisi başlat (ilk çalıştırmada ~150MB tarayıcı indirilir, bitmesini bekle)")
+        print("    3. Cookie-Editor ile xiaohongshu.com Cookie'lerini açıkça dışa aktar")
+        print("       agent-reach configure xhs-cookies (gizli giriş istemine yapıştır)")
+        print("    4. Bağla: mcporter config add xiaohongshu http://localhost:18060/mcp --scope home")
+        print("    5. Doğrula: agent-reach doctor")
         return False
 
     opencli_ok = _install_opencli_deps()
     xhs_ok = bool(shutil.which("xhs"))
     if xhs_ok:
-        print("  ✅ 检测到存量 xhs-cli，将作为备选后端继续可用")
+        print("  ✅ Mevcut xhs-cli bulundu, yedek backend olarak kullanılmaya devam edecek")
     return opencli_ok or xhs_ok
 
 
@@ -1039,7 +1075,7 @@ def _install_opencli_deps():
     npm_cmd = shutil.which("npm")
     if not npm_cmd:
         print("  [!]  OpenCLI requires Node.js ≥ 20. Install Node first:")
-        print("       https://nodejs.org  （或 brew install node）")
+        print("       https://nodejs.org  (veya brew install node)")
         return False
 
     try:
@@ -1058,10 +1094,10 @@ def _install_opencli_deps():
         and not st.broken
     ):
         print("  ✅ OpenCLI installed")
-        print("  最后一步（必须手动，Chrome 安全限制）：安装浏览器扩展")
-        print(f"    1. 打开 {OPENCLI_EXTENSION_URL}")
-        print("    2. 点「添加至 Chrome」")
-        print("    3. 运行 `opencli doctor` 验证连接")
+        print("  Son adım (elle yapılmalı, Chrome güvenlik kısıtı): tarayıcı eklentisini kur")
+        print(f"    1. Aç: {OPENCLI_EXTENSION_URL}")
+        print("    2. \"Chrome'a ekle\"ye tıkla")
+        print("    3. Bağlantıyı doğrulamak için `opencli doctor` çalıştır")
         return True
     else:
         print(f"  [!]  OpenCLI install failed. Run: npm install -g {OPENCLI_PACKAGE}")
@@ -1076,10 +1112,10 @@ def _install_reddit_deps():
     """
     if _detect_environment() != "server":
         installed = _install_opencli_deps()
-        print("  Reddit 走 OpenCLI（浏览器里登录过 reddit.com 即可用）")
+        print("  Reddit OpenCLI üzerinden çalışır (tarayıcıda reddit.com'a giriş yapmış olman yeterli)")
         import shutil
         if shutil.which("rdt"):
-            print("  ✅ 检测到存量 rdt-cli，将作为备选后端继续可用")
+            print("  ✅ Mevcut rdt-cli bulundu, yedek backend olarak kullanılmaya devam edecek")
         return installed
 
     return _install_rdt_cli()
@@ -1242,7 +1278,7 @@ def _install_mcporter():
             timeout=5,
         )
         if r.returncode != 0:
-            raise McporterConfigError("mcporter 配置查询失败")
+            raise McporterConfigError("mcporter yapılandırma sorgusu başarısız")
         server_names = configured_server_names(r.stdout)
         if "exa" not in server_names:
             add_result = subprocess.run(
@@ -1422,7 +1458,7 @@ def _cmd_configure(args):
             if success:
                 print(f"  ✅ {result_platform}: {message}")
                 if targets:
-                    print(f"     写入：{', '.join(targets)}")
+                    print(f"     Yazıldı: {', '.join(targets)}")
                 found_any = True
             else:
                 print(f"  -- {result_platform}: {message}")
@@ -1457,8 +1493,8 @@ def _cmd_configure(args):
         # bilibili_proxy key is kept in sync for older configs.
         config.set("proxy", value)
         config.set("bilibili_proxy", value)
-        print("✅ 代理已保存（供 Agent 在访问 Reddit/Twitter 等需要代理的网络时设置 HTTP_PROXY/HTTPS_PROXY）")
-        print("  Note: B站走 bili-cli，国内网络无需代理。")
+        print("✅ Proxy kaydedildi (Agent, Reddit/Twitter gibi proxy gerektiren ağlara erişirken HTTP_PROXY/HTTPS_PROXY olarak ayarlar)")
+        print("  Not: Bilibili bili-cli üzerinden çalışır, Çin içi ağlarda proxy gerekmez.")
 
     elif args.key == "twitter-cookies":
         # Accept two formats:
@@ -1470,7 +1506,7 @@ def _cmd_configure(args):
             config.set("twitter_auth_token", auth_token)
             config.set("twitter_ct0", ct0)
 
-            print("✅ Twitter cookies 已保存到 ~/.agent-reach/config.yaml")
+            print("✅ Twitter cookie'leri ~/.agent-reach/config.yaml dosyasına kaydedildi")
             if getattr(args, "sync_legacy_twitter", False):
                 from agent_reach.cookie_extract import (
                     _sync_bird_env,
@@ -1494,17 +1530,17 @@ def _cmd_configure(args):
                     print("  Legacy copies written successfully.")
 
             print(
-                "  凭据未实时验证：不会执行 `twitter status`，因为上游在"
-                "验证失败时会自动读取浏览器 Cookie。"
+                "  Kimlik bilgileri canlı doğrulanmadı: `twitter status` çalıştırılmaz, çünkü "
+                "upstream doğrulama başarısız olunca tarayıcı Cookie'lerini otomatik okur."
             )
             if not shutil.which("twitter"):
                 print(
-                    "  [!] twitter-cli 未安装。运行：pipx install twitter-cli"
+                    "  [!] twitter-cli kurulu değil. Çalıştır: pipx install twitter-cli"
                 )
             else:
                 print(
-                    "  注意：独立 `twitter` 命令不会读取 Agent Reach 配置；"
-                    "直接使用时需显式设置 TWITTER_AUTH_TOKEN/TWITTER_CT0。"
+                    "  Dikkat: bağımsız `twitter` komutu Agent Reach yapılandırmasını okumaz; "
+                    "doğrudan kullanırken TWITTER_AUTH_TOKEN/TWITTER_CT0'ı açıkça ayarla."
                 )
         else:
             print("[X] Could not find auth_token and ct0 in your input.")
@@ -1640,17 +1676,17 @@ def _configure_xhs_cookies(value) -> bool:
 
                 if ignored_domains:
                     print(
-                        f"  [!] 已忽略 {ignored_domains} 个非 "
-                        "xiaohongshu.com 域 Cookie"
+                        f"  [!] xiaohongshu.com alan adına ait olmayan "
+                        f"{ignored_domains} Cookie yok sayıldı"
                     )
                 if ignored_invalid:
                     print(
-                        f"  [!] 已忽略 {ignored_invalid} 个格式无效的 Cookie"
+                        f"  [!] Biçimi geçersiz {ignored_invalid} Cookie yok sayıldı"
                     )
                 if not valid_cookies:
                     print(
-                        "[X] Cookie-Editor JSON 中没有有效的 "
-                        "xiaohongshu.com 域 Cookie"
+                        "[X] Cookie-Editor JSON içinde geçerli "
+                        "xiaohongshu.com Cookie'si yok"
                     )
                     return False
                 cookies_json = json.dumps(valid_cookies)
@@ -1810,6 +1846,7 @@ def _configure_xhs_cookies(value) -> bool:
                 [mcporter, "call", "xiaohongshu.check_login_status()"],
                 capture_output=True, encoding="utf-8", errors="replace", timeout=15,
             )
+            # "已登录" is matched against xiaohongshu-mcp's own (Chinese) output.
             if "已登录" in result.stdout or "logged" in result.stdout.lower():
                 print("✅ Login verified!")
             else:
@@ -1874,10 +1911,10 @@ def _cmd_uninstall(args):
         path for path in legacy_credential_paths if os.path.lexists(path)
     ]
     if present_legacy_paths:
-        print("  [!] 检测到可选的 Twitter legacy 凭据副本；不会自动删除：")
+        print("  [!] İsteğe bağlı Twitter legacy kimlik bilgisi kopyaları bulundu; otomatik silinmez:")
         for path in present_legacy_paths:
             print(f"      {path}")
-        print("      若确认不再被 xfetch/bird 使用，请手动删除。")
+        print("      xfetch/bird artık kullanmıyorsa elle sil.")
 
     # ── 2. Skill files ──
     skill_dirs = [
@@ -1933,8 +1970,8 @@ def _cmd_uninstall(args):
         ):
             mcporter_cleanup_skipped = True
             print(
-                "  [!] 无法安全核验 mcporter 配置来源；"
-                "不会自动删除 exa/xiaohongshu 项。"
+                "  [!] mcporter yapılandırmasının kaynağı güvenle doğrulanamadı; "
+                "exa/xiaohongshu kayıtları otomatik silinmez."
             )
         else:
             for mcp_name in ("exa", "xiaohongshu"):
@@ -1942,8 +1979,8 @@ def _cmd_uninstall(args):
                     continue
                 mcporter_cleanup_skipped = True
                 print(
-                    f"  [!] mcporter entry {mcp_name} 来源无法证明由 "
-                    "Agent Reach 管理；已保留。若确认不再需要，请手动移除。"
+                    f"  [!] mcporter entry {mcp_name} kaydının Agent Reach tarafından "
+                    "yönetildiği kanıtlanamadı; korundu. Artık gerekmiyorsa elle kaldır."
                 )
 
     # ── 4. Summary and optional steps ──
@@ -2003,13 +2040,13 @@ def _cmd_setup():
     import shutil
     import subprocess
 
-    print("【推荐】全网搜索 — Exa（通过 mcporter）")
-    print("  免费，无需 API Key")
+    print("[Önerilen] Web araması — Exa (mcporter üzerinden)")
+    print("  Ücretsiz, API Key gerekmez")
 
     if not shutil.which("mcporter"):
-        print("  当前状态: -- mcporter 未安装")
-        print("  安装：npm install -g mcporter")
-        print("  然后：mcporter config add exa https://mcp.exa.ai/mcp --scope home")
+        print("  Mevcut durum: -- mcporter kurulu değil")
+        print("  Kur: npm install -g mcporter")
+        print("  Sonra: mcporter config add exa https://mcp.exa.ai/mcp --scope home")
         print()
     else:
         try:
@@ -2026,12 +2063,12 @@ def _cmd_setup():
                 timeout=10,
             )
             if r.returncode != 0:
-                raise McporterConfigError("mcporter 配置查询失败")
+                raise McporterConfigError("mcporter yapılandırma sorgusu başarısız")
             if "exa" in configured_server_names(r.stdout):
-                print("  当前状态: ✅ 已配置")
+                print("  Mevcut durum: ✅ yapılandırılmış")
             else:
-                print("  当前状态: -- 未配置")
-                setup_now = input("  现在自动配置 Exa 吗？[Y/n]: ").strip().lower()
+                print("  Mevcut durum: -- yapılandırılmamış")
+                setup_now = input("  Exa şimdi otomatik yapılandırılsın mı? [Y/n]: ").strip().lower()
                 if setup_now in ("", "y", "yes"):
                     add_r = subprocess.run(
                         [
@@ -2046,56 +2083,56 @@ def _cmd_setup():
                         capture_output=True, encoding="utf-8", errors="replace", timeout=10,
                     )
                     if add_r.returncode == 0:
-                        print("  ✅ Exa 已配置")
+                        print("  ✅ Exa yapılandırıldı")
                     else:
-                        print("  [!] 自动配置失败，请手动执行：")
+                        print("  [!] Otomatik yapılandırma başarısız, elle çalıştır:")
                         print("     mcporter config add exa https://mcp.exa.ai/mcp --scope home")
         except Exception:
-            print("  [!] 无法检查 Exa 配置，请手动执行：")
+            print("  [!] Exa yapılandırması kontrol edilemedi, elle çalıştır:")
             print("     mcporter config add exa https://mcp.exa.ai/mcp --scope home")
         print()
 
     # Step 2: GitHub token
-    print("【可选】GitHub Token — 提高 API 限额")
-    print("  无 token: 60 次/小时 | 有 token: 5000 次/小时")
-    print("  获取: https://github.com/settings/tokens (无需任何权限)")
+    print("[İsteğe bağlı] GitHub Token — API limitini yükseltir")
+    print("  Token yok: 60 istek/saat | Token var: 5000 istek/saat")
+    print("  Al: https://github.com/settings/tokens (hiçbir izin gerekmez)")
     current = config.get("github_token")
     if current:
-        print("  当前状态: ✅ 已配置")
+        print("  Mevcut durum: ✅ yapılandırılmış")
     else:
-        key = getpass.getpass("  GITHUB_TOKEN (回车跳过): ").strip()
+        key = getpass.getpass("  GITHUB_TOKEN (atlamak için Enter): ").strip()
         if key:
             config.set("github_token", key)
-            print("  ✅ GitHub API 已提升至 5000 次/小时！")
+            print("  ✅ GitHub API limiti 5000 istek/saate yükseltildi!")
         else:
-            print("  跳过。公开 API 也能用")
+            print("  Atlandı. Herkese açık API de çalışır")
     print()
 
     # Step 3: Reddit — rdt-cli
-    print("【信息】Reddit — 必须登录态（无零配置路径）。桌面推荐 OpenCLI；或 rdt-cli：")
-    print(f"  安装：pipx install '{_RDT_GIT_SOURCE}'")
-    print("  然后运行：rdt login（需先在浏览器登录 reddit.com）")
+    print("[Bilgi] Reddit — giriş yapılmış oturum şart (kurulumsuz yol yok). Masaüstünde OpenCLI önerilir; ya da rdt-cli:")
+    print(f"  Kur: pipx install '{_RDT_GIT_SOURCE}'")
+    print("  Sonra çalıştır: rdt login (önce tarayıcıda reddit.com'a giriş yap)")
     print()
 
     # Step 4: Groq (Whisper)
-    print("【可选】Groq API — 视频无字幕时的语音转文字")
-    print("  免费额度，注册: https://console.groq.com")
+    print("[İsteğe bağlı] Groq API — altyazısı olmayan videolar için sesten yazıya")
+    print("  Ücretsiz kota, kayıt: https://console.groq.com")
     current = config.get("groq_api_key")
     if current:
-        print("  当前状态: ✅ 已配置")
+        print("  Mevcut durum: ✅ yapılandırılmış")
     else:
-        key = getpass.getpass("  GROQ_API_KEY (回车跳过): ").strip()
+        key = getpass.getpass("  GROQ_API_KEY (atlamak için Enter): ").strip()
         if key:
             config.set("groq_api_key", key)
-            print("  ✅ 语音转文字已开启！")
+            print("  ✅ Sesten yazıya açıldı!")
         else:
-            print("  跳过")
+            print("  Atlandı")
     print()
 
     # Summary
     print("=" * 40)
-    print(f"✅ 配置已保存到 {config.config_path}")
-    print("运行 agent-reach doctor 查看完整状态")
+    print(f"✅ Yapılandırma kaydedildi: {config.config_path}")
+    print("Tam durumu görmek için agent-reach doctor çalıştır")
     print()
 
 
@@ -2126,15 +2163,15 @@ def _classify_update_error(exc):
 def _update_error_text(kind):
     """Map internal error kinds to user-facing text."""
     mapping = {
-        "timeout": "网络超时",
-        "dns": "DNS 解析失败",
-        "rate_limit": "GitHub API 速率限制",
-        "connection": "网络连接失败",
-        "server_error": "GitHub 服务暂时不可用",
-        "http": "HTTP 请求失败",
-        "unknown": "未知网络错误",
+        "timeout": "ağ zaman aşımı",
+        "dns": "DNS çözümlemesi başarısız",
+        "rate_limit": "GitHub API hız limiti",
+        "connection": "ağ bağlantısı başarısız",
+        "server_error": "GitHub hizmeti geçici olarak kullanılamıyor",
+        "http": "HTTP isteği başarısız",
+        "unknown": "bilinmeyen ağ hatası",
     }
-    return mapping.get(kind, "请求失败")
+    return mapping.get(kind, "istek başarısız")
 
 
 def _classify_github_response_error(resp):
@@ -2193,10 +2230,10 @@ def _github_get_with_retry(url, timeout=10, retries=3, sleeper=time.sleep):
 #: Full update = package + upstream tools + skill. The one-liner walks an
 #: agent through all three (docs/update.md); bare pip only updates the package.
 _UPDATE_INSTRUCTIONS = (
-    "更新方式（推荐，复制这句话给你的 AI Agent，会完整更新本体+上游工具+skill）：\n"
-    "  帮我更新 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md\n"
-    "仅更新本体（不含上游工具和 skill）：\n"
-    "  pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip"
+    "Güncelleme (önerilen; bu cümleyi AI Agent'ına kopyala, paket + upstream araçlar + skill birlikte güncellenir):\n"
+    "  Agent Reach'i güncelle: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md\n"
+    "Sadece paketi güncelle (upstream araçlar ve skill hariç):\n"
+    "  pip install --upgrade https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip"
 )
 
 
@@ -2223,14 +2260,14 @@ def _cmd_check_update():
     """Check for newer versions on GitHub."""
     from agent_reach import __version__
 
-    print(f"当前版本: v{__version__}")
+    print(f"Mevcut sürüm: v{__version__}")
     release_url = "https://api.github.com/repos/Panniantong/Agent-Reach/releases/latest"
     commit_url = "https://api.github.com/repos/Panniantong/Agent-Reach/commits/main"
 
     # Fetch latest release with retry/backoff.
     resp, err, attempts = _github_get_with_retry(release_url, timeout=10, retries=3)
     if err:
-        print(f"[!] 无法检查更新（{_update_error_text(err)}，已重试 {attempts} 次）")
+        print(f"[!] Güncelleme kontrol edilemedi ({_update_error_text(err)}, {attempts} kez denendi)")
         return "error"
 
     if resp.status_code == 200:
@@ -2239,45 +2276,45 @@ def _cmd_check_update():
         body = data.get("body", "")
 
         if latest and _is_newer_version(latest, __version__):
-            print(f"最新版本: v{latest} ← 有更新！")
+            print(f"En son sürüm: v{latest} ← güncelleme var!")
             if body:
                 print()
-                print("更新内容：")
+                print("Yenilikler:")
                 # Show first 20 lines of release notes
                 for line in body.strip().split("\n")[:20]:
                     print(f"  {line}")
             print()
             print(_UPDATE_INSTRUCTIONS)
             return "update_available"
-        print("✅ 已是最新版本")
+        print("✅ Zaten en son sürüm")
         return "up_to_date"
 
     release_err = _classify_github_response_error(resp)
     if release_err == "rate_limit":
-        print("[!] 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        print("[!] Güncelleme kontrol edilemedi (GitHub API hız limiti, biraz sonra tekrar dene)")
         return "error"
 
     # No releases yet, fall back to latest main commit.
     resp2, err2, attempts2 = _github_get_with_retry(commit_url, timeout=10, retries=2)
     if err2:
-        print(f"[!] 无法检查更新（{_update_error_text(err2)}，已重试 {attempts + attempts2} 次）")
+        print(f"[!] Güncelleme kontrol edilemedi ({_update_error_text(err2)}, {attempts + attempts2} kez denendi)")
         return "error"
     if resp2.status_code == 200:
         commit = resp2.json()
         sha = commit.get("sha", "")[:7]
         msg = commit.get("commit", {}).get("message", "").split("\n")[0]
         date = commit.get("commit", {}).get("committer", {}).get("date", "")[:10]
-        print(f"最新提交: {sha} ({date}) {msg}")
+        print(f"En son commit: {sha} ({date}) {msg}")
         print()
         print(_UPDATE_INSTRUCTIONS)
         return "unknown"
 
     commit_err = _classify_github_response_error(resp2)
     if commit_err == "rate_limit":
-        print("[!] 无法检查更新（GitHub API 速率限制，请稍后重试）")
+        print("[!] Güncelleme kontrol edilemedi (GitHub API hız limiti, biraz sonra tekrar dene)")
         return "error"
 
-    print(f"[!] 无法检查更新（GitHub 返回 {resp2.status_code}）")
+    print(f"[!] Güncelleme kontrol edilemedi (GitHub {resp2.status_code} döndürdü)")
     return "error"
 
 
@@ -2301,9 +2338,9 @@ def _cmd_watch():
     # Find broken channels (were working, now broken)
     for key, r in results.items():
         if r["status"] in ("off", "error"):
-            issues.append(f"[X] {r['name']}：{r['message']}")
+            issues.append(f"[X] {r['name']}: {r['message']}")
         elif r["status"] == "warn":
-            issues.append(f"[!] {r['name']}：{r['message']}")
+            issues.append(f"[!] {r['name']}: {r['message']}")
 
     # Check for updates
     update_available = False
@@ -2324,12 +2361,12 @@ def _cmd_watch():
 
     # Output
     if not issues and not update_available:
-        print(f"Agent Reach: 全部正常 ({ok}/{total} 渠道可用，v{__version__} 已是最新)")
+        print(f"Agent Reach: her şey yolunda ({ok}/{total} kanal kullanılabilir, v{__version__} en son sürüm)")
         return
 
-    print("Agent Reach 监控报告")
+    print("Agent Reach izleme raporu")
     print("=" * 40)
-    print(f"版本: v{__version__}  |  渠道: {ok}/{total}")
+    print(f"Sürüm: v{__version__}  |  Kanallar: {ok}/{total}")
 
     if issues:
         print()
@@ -2338,12 +2375,12 @@ def _cmd_watch():
 
     if update_available:
         print()
-        print(f"新版本可用: v{new_version}")
+        print(f"Yeni sürüm mevcut: v{new_version}")
         if release_body:
             for line in release_body.strip().split("\n")[:10]:
                 print(f"    {line}")
-        print("  更新（一句话发给 Agent 即可完整更新）：")
-        print("    帮我更新 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md")
+        print("  Güncelle (bu tek cümleyi Agent'ına gönder, her şey güncellenir):")
+        print("    Agent Reach'i güncelle: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md")
 
 
 if __name__ == "__main__":

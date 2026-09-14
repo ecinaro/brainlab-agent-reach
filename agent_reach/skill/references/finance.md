@@ -1,46 +1,54 @@
-# 金融行情
+# Finans ve piyasa verileri
 
-雪球股票行情、搜索与热门内容。行情可能延迟，不构成投资建议。
+Xueqiu hisse fiyatları, arama ve popüler içerik. Fiyatlar gecikmeli olabilir; yatırım
+tavsiyesi değildir.
 
-## 先检查状态
+## Önce durumu kontrol et
 
 ```bash
 agent-reach doctor --json
 ```
 
-`xueqiu.active_backend` 有值时按该后端使用；值为 `null` 只表示 Doctor 没有完成
-实时内容验证。雪球需要已登录会话或最小 Cookie，不能把 HTTP 400 当成股票不存在。
+`xueqiu.active_backend` doluysa o backend'i kullan; değerin `null` olması yalnızca Doctor'ın
+canlı içerik doğrulamasını tamamlamadığı anlamına gelir. Xueqiu giriş yapılmış bir oturum veya
+asgari bir cookie gerektirir; HTTP 400'ü "hisse yok" diye yorumlama.
 
-## OpenCLI（桌面已有 Chrome 登录态时优先）
+## OpenCLI (masaüstünde Chrome'da zaten giriş varsa öncelikli)
 
 ```bash
-# 验证当前登录态
+# Mevcut oturumu doğrula
 opencli xueqiu whoami -f yaml
 
-# 股票搜索与实时行情
+# Hisse araması ve anlık fiyat
 opencli xueqiu search "英伟达" -f yaml
 opencli xueqiu stock NVDA -f yaml
 
-# 热门内容与热门股票
+# Popüler içerik ve popüler hisseler
 opencli xueqiu hot -f yaml
 opencli xueqiu hot-stock -f yaml
 
-# 查看全部只读命令
+# Tüm salt-okunur komutları gör
 opencli xueqiu --help
 ```
 
-OpenCLI 只复用用户已经存在且明确控制的浏览器会话。不要自动执行
-`opencli xueqiu login`；没有现成登录态时，让用户先在 Chrome 登录，或显式导入
-雪球所需的最小 Cookie：
+> Xueqiu Çince bir platformdur: şirket adıyla ararken Çince adı kullan (ör. NVIDIA için
+> `英伟达`); hisse kodu biliniyorsa doğrudan `stock NVDA` gibi kodla sorgula.
+
+OpenCLI yalnızca kullanıcının zaten açık ve kendi kontrolündeki tarayıcı oturumunu kullanır.
+`opencli xueqiu login` komutunu otomatik çalıştırma; oturum yoksa kullanıcıdan önce Chrome'da
+giriş yapmasını iste veya Xueqiu için gereken asgari cookie'yi açıkça içe aktar:
 
 ```bash
 agent-reach configure --from-browser chrome --platform xueqiu
 ```
 
-该配置只读取并保存 `xq_a_token`，不会顺带采集其他平台 Cookie。
+Bu yapılandırma yalnızca `xq_a_token` değerini okur ve kaydeder; başka platformların
+cookie'lerini toplamaz.
 
-## 验收与失败处理
+## Doğrulama ve hata yönetimi
 
-- 以返回股票名称、代码、价格或非空内容列表为成功；退出码 0 但字段为空不算成功。
-- HTTP 400 通常是会话/Cookie 问题，不表示股票代码不存在。
-- `whoami` 成功而 `stock`/`hot` 失败时，按适配器解析或平台接口问题报告，不要误诊成未登录。
+- Başarı ölçütü: hisse adı, kodu, fiyatı veya boş olmayan bir içerik listesi dönmesi. Exit 0
+  olup alanların boş gelmesi başarı sayılmaz.
+- HTTP 400 genellikle oturum/cookie sorunudur; hisse kodunun olmadığı anlamına gelmez.
+- `whoami` başarılı ama `stock`/`hot` başarısızsa bunu adapter ayrıştırma veya platform API
+  sorunu olarak raporla; "giriş yok" diye yanlış teşhis koyma.

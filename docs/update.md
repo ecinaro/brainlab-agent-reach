@@ -1,120 +1,107 @@
-# Agent Reach — Update Guide
+# Agent Reach — Güncelleme Rehberi
 
-## For Humans
+## İnsanlar için
 
-Copy this to your AI Agent:
-
-```
-帮我更新 Agent Reach：https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
-```
-
-Or in English:
+Bu cümleyi yapay zekâ ajanına yapıştır:
 
 ```
-Update Agent Reach: https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md
+Şu talimatları oku ve Agent Reach'i benim için güncelle: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md
+```
+
+İngilizce istersen:
+
+```
+Update Agent Reach: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md
 ```
 
 ---
 
-## For AI Agents
+## Yapay zekâ ajanları için
 
-### ⚠️ Workspace Rules
+Kullanıcıyla Türkçe konuş. Kısa ve basit cümleler kur.
 
-**Never create files, clone repos, or run commands in the agent workspace.** Use `/tmp/` for temporary work and `~/.agent-reach/` for persistent data.
+### ⚠️ Çalışma alanı kuralları
 
-### Goal
+**Ajanın çalışma alanında (workspace) asla dosya oluşturma, repo klonlama ya da komut çalıştırma.** Geçici işler için `/tmp/`, kalıcı veriler için `~/.agent-reach/` kullan.
 
-Update Agent Reach to the latest version, refresh upstream tools, migrate from retired backends, and verify everything works. The user should not need to do anything manually (except things only a human can do, like clicking a browser-extension install button).
+### Amaç
 
-### Step 1: Check current version
+Agent Reach'i en son sürüme güncelle, üst akış araçlarını tazele, emekliye ayrılan yollardan yenilerine geç ve her şeyin çalıştığını doğrula. Kullanıcı elle hiçbir şey yapmak zorunda kalmamalı (sadece bir insanın yapabileceği işler hariç: Chrome eklentisi eklemek, bir siteye giriş yapmak gibi).
+
+### Adım 1: Mevcut sürümü kontrol et
 
 ```bash
 agent-reach check-update
 ```
 
-If it says "已是最新版本", skip to Step 4 (verify). Otherwise continue.
+Çıktı zaten en son sürümde olduğunu söylüyorsa Adım 5'e (doğrulama) geç. Değilse devam et.
 
-### Step 2: Update Agent Reach package
+### Adım 2: Agent Reach paketini güncelle
 
 ```bash
-pip install --upgrade https://github.com/Panniantong/agent-reach/archive/main.zip
+pip install --upgrade https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip
 ```
 
-> If pip complains about `externally-managed-environment` (PEP 668), the user
-> originally installed via pipx or a venv — use the matching command:
-> `pipx install --force https://github.com/Panniantong/agent-reach/archive/main.zip`
-> or activate `~/.agent-reach-venv` first.
+> pip `externally-managed-environment` (PEP 668) hatası verirse kullanıcı ilk kurulumu
+> pipx ya da venv ile yapmıştır. Uygun komutu kullan:
+> `pipx install --force https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip`
+> ya da önce `~/.agent-reach-venv` ortamını etkinleştir.
 
-### Step 3: Refresh upstream tools
+### Adım 3: Üst akış araçlarını tazele
 
-Run these to keep installed tools current. **Only upgrade what is already
-installed — do not install new tools the user never asked for** (the one
-exception: OpenCLI on desktop, see below).
+Kurulu araçları güncel tutmak için bunları çalıştır. **Sadece zaten kurulu olanı güncelle; kullanıcının hiç istemediği yeni araçları kurma** (tek istisna: masaüstünde OpenCLI, aşağıya bak).
 
 ```bash
-# Python-based CLIs the user already has (upgrade keeps signatures fresh)
+# Kullanıcıda zaten olan Python tabanlı CLI'lar (güncelleme imzaları taze tutar)
 which twitter >/dev/null 2>&1 && { pipx upgrade twitter-cli 2>/dev/null || uv tool upgrade twitter-cli 2>/dev/null; }
 which bili    >/dev/null 2>&1 && { pipx upgrade bilibili-cli 2>/dev/null || uv tool upgrade bilibili-cli 2>/dev/null; }
 which xhs     >/dev/null 2>&1 && { pipx upgrade xiaohongshu-cli 2>/dev/null || uv tool upgrade xiaohongshu-cli 2>/dev/null; }
 which yt-dlp  >/dev/null 2>&1 && { pipx install --force 'yt-dlp[default]' 2>/dev/null || uv tool install --force 'yt-dlp[default]' 2>/dev/null || python -m pip install -U 'yt-dlp[default]' 2>/dev/null; }
 
-# rdt-cli is pinned to a git source (PyPI lags upstream) — same pin as the code's _RDT_GIT_SOURCE
+# rdt-cli bir git kaynağına sabitlenmiştir (PyPI geride) — koddaki _RDT_GIT_SOURCE ile aynı sabit sürüm
 which rdt >/dev/null 2>&1 && pipx install --force 'git+https://github.com/public-clis/rdt-cli.git@5e4fb3720d5c174e976cd425ccc3b879d52cac66' 2>/dev/null
 
-# npm-based
+# npm tabanlı
 which mcporter >/dev/null 2>&1 && npm update -g mcporter 2>/dev/null
 which opencli  >/dev/null 2>&1 && npm update -g @jackwener/opencli 2>/dev/null
 ```
 
-**Desktop users without OpenCLI**: since v1.5.0 OpenCLI is the preferred
-backend for 小红书/Reddit (and adds B站 subtitles). Offer it once. For
-小红书, OpenCLI may use only an existing Chrome session explicitly controlled
-by the user. The update must never log the user in or read browser cookies:
+> Windows PowerShell'de `which` yerine `Get-Command`, `npm` betik hatası verirse `npm.cmd` kullan.
 
-> "这次更新引入了 OpenCLI 后端。要装吗？装完只需你在 Chrome 商店点一次
-> 『添加扩展』。小红书 OpenCLI 只使用你已有的 Chrome 会话；如果没有现成
-> 会话，我不会自动登录，会改用 Cookie-Editor 配置 MCP / 存量工具。"
+**OpenCLI eklentisi:** Chrome Web Mağazası'ndan kurulduysa Chrome kendisi günceller. Elle yüklendiyse (zip) kullanıcıdan yeni `opencli-extension-v*.zip` dosyasını https://github.com/jackwener/opencli/releases adresinden indirmesini ve `chrome://extensions` sayfasında **Güncelle**ye basmasını iste. Sonra `opencli doctor` çalıştır.
 
-If yes: `agent-reach install --system --channels opencli` and guide them through the
-extension click. If no, everything keeps working on existing backends.
+**OpenCLI'ı olmayan masaüstü kullanıcıları:** v1.5.0'dan beri OpenCLI, XiaoHongShu ve Reddit için tercih edilen yoldur (ayrıca Bilibili altyazılarını ekler). Bu Türkçe sürümde ayrıca **erişilemeyen tüm siteler için genel yedektir.** Kullanıcıya bir kez öner. XiaoHongShu için OpenCLI yalnızca Chrome'da zaten var olan ve kullanıcının açıkça kontrol ettiği oturumu kullanabilir. Güncelleme asla kullanıcı adına giriş yapmamalı ve tarayıcı Cookie'si okumamalı:
 
-### Step 4: Coexistence (DO NOT uninstall old tools)
+> "Bu güncelleme OpenCLI desteği getiriyor. Kurayım mı? Kurulumdan sonra senin sadece Chrome Web Mağazası'nda bir kez 'Chrome'a ekle'ye basman gerekiyor. OpenCLI sadece Chrome'da zaten açık olan oturumunu kullanır. Giriş yapılmış oturum yoksa senin yerine giriş yapmam; XiaoHongShu için Cookie-Editor ile MCP / eski araçları ayarlarız."
 
-**Never uninstall tools the user already has.** Retired backends (e.g. yt-dlp
-no longer serves Bilibili; xhs-cli is no longer installed by default) keep
-working as fallbacks where they still function. Agent Reach routes around
-them automatically — removal is the user's call, not yours.
+Evet derse: `agent-reach install --system --channels opencli` çalıştır ve eklenti adımında kullanıcıya yol göster ([opencli-chrome-kurulum.md](opencli-chrome-kurulum.md)). Hayır derse mevcut yollarla her şey çalışmaya devam eder.
 
-### Step 5: Verify
+### Adım 4: Birlikte yaşama (eski araçları KALDIRMA)
+
+**Kullanıcıda zaten olan araçları asla kaldırma.** Emekliye ayrılan yollar (ör. yt-dlp artık Bilibili için kullanılmıyor; xhs-cli artık varsayılan olarak kurulmuyor) hâlâ çalıştıkları yerde yedek olarak iş görür. Agent Reach bunların etrafından kendiliğinden dolaşır. Kaldırma kararı kullanıcınındır, senin değil.
+
+### Adım 5: Doğrula
 
 ```bash
 agent-reach version
 agent-reach doctor
 ```
 
-Running `agent-reach doctor` (text mode) also makes sure an Agent Reach skill
-exists in detected agent skill directories. If the user already has a skill
-there, doctor preserves it instead of overwriting local customizations. Use
-`agent-reach skill --install` when you explicitly want to refresh the bundled
-skill files.
+`agent-reach doctor` (metin modu) bulunan ajan skill klasörlerinde bir Agent Reach skill'i olduğundan da emin olur. Kullanıcının orada zaten bir skill'i varsa doctor yerel değişiklikleri ezmez, korur. Paketle gelen skill dosyalarını (varsayılan dil Türkçe) bilerek yenilemek istediğinde `agent-reach skill --install` kullan.
 
-Check the doctor output:
+Doctor çıktısını kontrol et:
 
-- Every channel shows ✅ / [!] with a clear message, and multi-backend
-  channels (小红书/Reddit/B站/Twitter) report `当前后端：…`
-- If a previously-working channel now shows [X]/error, the message contains
-  the exact fix (e.g. a venv-reinstall prescription) — run it, then re-check
-- `--json` gives the same data machine-readably (`active_backend` per channel)
+- Her kanal net bir mesajla ✅ / [!] gösteriyor ve birden fazla yolu olan kanallar (XiaoHongShu / Reddit / Bilibili / Twitter / Web) hangi yolun kullanıldığını söylüyor.
+- Daha önce çalışan bir kanal şimdi [X] / hata gösteriyorsa mesaj tam çözümü içerir (ör. venv'i yeniden kurma talimatı). Onu uygula, tekrar kontrol et.
+- `--json` aynı veriyi makinenin okuyacağı biçimde verir (her kanal için `active_backend`).
 
-### Step 6: Report to user
+### Adım 6: Kullanıcıya raporla
 
-Tell the user:
+Kullanıcıya Türkçe söyle:
 
-1. What version they're on now (`agent-reach version`)
-2. How many channels are available, and which backend each multi-backend
-   platform is using (from doctor)
-3. Anything that needs their action (e.g. a Chrome extension click, or a
-   manual Cookie-Editor export when XiaoHongShu uses MCP / a legacy tool)
-4. What changed in this update (release notes shown by `check-update`)
+1. Şu an hangi sürümde olduğu (`agent-reach version`)
+2. Kaç kanalın çalıştığı ve birden fazla yolu olan her platformun hangi yolu kullandığı (doctor'dan)
+3. Onun yapması gereken bir şey var mı (ör. Chrome eklentisini eklemek, XiaoHongShu MCP / eski araç kullanıyorsa Cookie-Editor ile elle dışa aktarma)
+4. Bu güncellemede neler değişti (`check-update` çıktısındaki sürüm notları)
 
-Done.
+Bitti.

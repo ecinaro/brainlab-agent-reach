@@ -53,13 +53,13 @@ def inspect_mcporter_config(
         payload = _read_config_object(config_path)
         servers = payload.get("mcpServers")
         if not isinstance(servers, dict):
-            raise McporterConfigError("mcporter 配置缺少 mcpServers 对象")
+            raise McporterConfigError("mcporter yapılandırmasında mcpServers nesnesi yok")
 
         for name, definition in servers.items():
             if not isinstance(name, str) or not name.strip():
-                raise McporterConfigError("mcporter 配置包含无效的 server name")
+                raise McporterConfigError("mcporter yapılandırması geçersiz bir server name içeriyor")
             if not isinstance(definition, dict):
-                raise McporterConfigError("mcporter server 定义必须是对象")
+                raise McporterConfigError("mcporter server tanımı bir nesne olmalı")
             names.add(name.casefold())
 
         imports = payload.get("imports", _MISSING)
@@ -70,7 +70,7 @@ def inspect_mcporter_config(
         elif not isinstance(imports, list) or not all(
             isinstance(item, str) for item in imports
         ):
-            raise McporterConfigError("mcporter imports 必须是字符串列表")
+            raise McporterConfigError("mcporter imports bir string listesi olmalı")
         elif imports:
             imports_unchecked = True
         sources.append(source)
@@ -115,18 +115,18 @@ def _read_config_object(config_path: Path) -> dict:
         )
     except PrivatePathError as exc:
         raise McporterConfigError(
-            f"mcporter 配置文件无法安全读取：{exc}"
+            f"mcporter yapılandırma dosyası güvenli şekilde okunamadı: {exc}"
         ) from exc
     except (OSError, UnicodeError) as exc:
-        raise McporterConfigError("mcporter 配置文件无法安全读取") from exc
+        raise McporterConfigError("mcporter yapılandırma dosyası güvenli şekilde okunamadı") from exc
     if raw is None:
-        raise McporterConfigError("mcporter 配置文件不存在")
+        raise McporterConfigError("mcporter yapılandırma dosyası yok")
     try:
         payload = json.loads(raw)
     except json.JSONDecodeError as exc:
-        raise McporterConfigError("mcporter 配置不是有效的 UTF-8 JSON") from exc
+        raise McporterConfigError("mcporter yapılandırması geçerli bir UTF-8 JSON değil") from exc
     if not isinstance(payload, dict):
-        raise McporterConfigError("mcporter 配置顶层必须是对象")
+        raise McporterConfigError("mcporter yapılandırmasının üst düzeyi bir nesne olmalı")
     return payload
 
 
@@ -139,10 +139,10 @@ def configured_server_names(output: str) -> set[str]:
     try:
         payload = json.loads(output)
     except (json.JSONDecodeError, TypeError) as exc:
-        raise McporterConfigError("mcporter 返回的 JSON 无法解析") from exc
+        raise McporterConfigError("mcporter tarafından döndürülen JSON ayrıştırılamadı") from exc
 
     if not isinstance(payload, dict) or not isinstance(payload.get("servers"), list):
-        raise McporterConfigError("mcporter JSON 缺少 servers 列表")
+        raise McporterConfigError("mcporter JSON içinde servers listesi yok")
 
     return {
         name.casefold()

@@ -159,7 +159,7 @@ def _clean_comment(comment):
 
 class XiaoHongShuChannel(Channel):
     name = "xiaohongshu"
-    description = "小红书笔记"
+    description = "XiaoHongShu notları"
     backends = ["OpenCLI", "xiaohongshu-mcp", "xhs-cli (xiaohongshu-cli)"]
     tier = 1
 
@@ -199,12 +199,12 @@ class XiaoHongShuChannel(Channel):
             return "error", "\n".join(m for _, _, m in findings)
 
         return "off", (
-            "未安装任何小红书后端。推荐：\n"
-            "  桌面：agent-reach install --system --channels opencli\n"
-            "       （复用 Chrome 登录态，刷过小红书即零配置可用）\n"
-            f"  服务器：xiaohongshu-mcp：{_MCP_INSTALL_URL}\n"
-            "       登录只使用 Cookie-Editor 明确导出：\n"
-            "       agent-reach configure xhs-cookies（隐藏输入）"
+            "Hiçbir XiaoHongShu backend'i kurulu değil. Önerilen:\n"
+            "  Masaüstü: agent-reach install --system --channels opencli\n"
+            "       (Chrome oturumunu kullanır, XiaoHongShu'ya girdiysen kurulumsuz çalışır)\n"
+            f"  Sunucu: xiaohongshu-mcp: {_MCP_INSTALL_URL}\n"
+            "       giriş için yalnızca Cookie-Editor ile açıkça dışa aktarılan Cookie kullan:\n"
+            "       agent-reach configure xhs-cookies (gizli giriş)"
         )
 
     def _check_opencli(self):
@@ -218,8 +218,9 @@ class XiaoHongShuChannel(Channel):
             return "error", st.hint
         if st.ready:
             return "warn", (
-                "OpenCLI 桥接已连接，但小红书登录态和实际命令未实时验证；"
-                "Doctor 不执行平台命令，因此当前不标记为可用。"
+                "OpenCLI köprüsü bağlı, ancak XiaoHongShu giriş durumu ve gerçek komutlar "
+                "canlı doğrulanmadı; Doctor platform komutu çalıştırmadığı için kanal "
+                "şimdilik kullanılabilir olarak işaretlenmiyor."
             )
         return "warn", st.hint
 
@@ -229,26 +230,26 @@ class XiaoHongShuChannel(Channel):
             return None
         if not shutil.which("mcporter"):
             return "warn", (
-                "xiaohongshu-mcp 服务可达，但 mcporter 未安装，Doctor 未接入"
-                "该服务。先安装：npm install -g mcporter"
+                "xiaohongshu-mcp servisine ulaşılabiliyor, ancak mcporter kurulu değil; "
+                "Doctor servise bağlanmadı. Önce kur: npm install -g mcporter"
             )
         try:
             inspection = inspect_mcporter_config()
         except McporterConfigError as exc:
-            return "error", f"mcporter 配置检查失败：{exc}"
+            return "error", f"mcporter yapılandırma kontrolü başarısız: {exc}"
         if "xiaohongshu" in inspection.server_names:
             return "warn", (
-                "xiaohongshu-mcp 服务可达且已接入 mcporter，但 Doctor "
-                "未验证登录态，不能据此宣称笔记功能可用。若未登录，用 "
-                "Cookie-Editor 导出后运行 agent-reach configure xhs-cookies"
+                "xiaohongshu-mcp servisine ulaşılabiliyor ve mcporter'a bağlı, ancak Doctor "
+                "giriş durumunu doğrulamadı; not özellikleri kullanılabilir denemez. Giriş "
+                "yapılmadıysa Cookie-Editor ile dışa aktarıp agent-reach configure xhs-cookies çalıştır"
             )
         if inspection.imports_unchecked:
             return "warn", (
-                "xiaohongshu-mcp 服务可达；mcporter 本地配置未发现"
-                " xiaohongshu，且 editor imports 未展开，Doctor 当前未验证接入。"
+                "xiaohongshu-mcp servisine ulaşılabiliyor; mcporter yerel yapılandırmasında "
+                "xiaohongshu bulunamadı ve editor imports açılmadı, Doctor bağlantıyı şimdilik doğrulamadı."
             )
         return "warn", (
-            "xiaohongshu-mcp 服务在跑但 mcporter 未接入。运行：\n"
+            "xiaohongshu-mcp servisi çalışıyor ama mcporter'a bağlı değil. Çalıştır:\n"
             f"  mcporter config add xiaohongshu {_MCP_ENDPOINT} --scope home"
         )
 
@@ -264,12 +265,12 @@ class XiaoHongShuChannel(Channel):
             )
         except PrivatePathError as exc:
             return "warn", (
-                f"xhs-cli 已安装，但 cookies.json 无法安全读取：{exc}。"
+                f"xhs-cli kurulu, ancak cookies.json güvenli şekilde okunamadı: {exc}."
             )
         except OSError:
             return "warn", (
-                "xhs-cli 已安装，但 cookies.json 无法安全读取；"
-                "Doctor 未执行会自动提取浏览器 Cookie 的 `xhs status`。"
+                "xhs-cli kurulu, ancak cookies.json güvenli şekilde okunamadı; "
+                "Doctor, tarayıcı Cookie'lerini otomatik çeken `xhs status` komutunu çalıştırmadı."
             )
         if payload is None:
             return self._xhs_cookie_hint()
@@ -277,8 +278,8 @@ class XiaoHongShuChannel(Channel):
             data = json.loads(payload)
         except (UnicodeError, json.JSONDecodeError, ValueError):
             return "warn", (
-                "xhs-cli 已安装，但保存的 cookies.json 无法安全解析；"
-                "Doctor 未执行会自动提取浏览器 Cookie 的 `xhs status`。"
+                "xhs-cli kurulu, ancak kayıtlı cookies.json güvenli şekilde ayrıştırılamadı; "
+                "Doctor, tarayıcı Cookie'lerini otomatik çeken `xhs status` komutunu çalıştırmadı."
             )
         if not isinstance(data, dict) or not data.get("a1"):
             return self._xhs_cookie_hint()
@@ -287,19 +288,21 @@ class XiaoHongShuChannel(Channel):
             time.time() - saved_at > _XHS_COOKIE_TTL_SECONDS
         ):
             return "warn", (
-                "xhs-cli 已安装，保存的 Cookie 已超过 7 天；Doctor 不会让"
-                "上游自动读取浏览器或刷新文件，请用 Cookie-Editor 明确更新。"
+                "xhs-cli kurulu, kayıtlı Cookie 7 günden eski; Doctor upstream aracın "
+                "tarayıcıyı otomatik okumasına veya dosyayı yenilemesine izin vermez, "
+                "Cookie-Editor ile elle güncelle."
             )
         return "warn", (
-            "xhs-cli 已安装并检测到显式保存的 Cookie；Doctor 为避免上游"
-            "自动读取浏览器或改写 Cookie，不执行 `xhs status`，未实时验证。"
+            "xhs-cli kurulu ve açıkça kaydedilmiş Cookie bulundu; Doctor upstream aracın "
+            "tarayıcıyı otomatik okumasını veya Cookie'yi değiştirmesini önlemek için "
+            "`xhs status` çalıştırmaz, canlı doğrulanmadı."
         )
 
     @staticmethod
     def _xhs_cookie_hint():
         return "warn", (
-            "xhs-cli 已安装但没有可用的显式 Cookie。不要运行会自动读取"
-            "浏览器的 `xhs login/status`；请迁移到 xiaohongshu-mcp，"
-            "再用 Cookie-Editor 导出并运行 "
-            "agent-reach configure xhs-cookies。"
+            "xhs-cli kurulu ama kullanılabilir açık bir Cookie yok. Tarayıcıyı otomatik "
+            "okuyan `xhs login/status` komutlarını çalıştırma; xiaohongshu-mcp'ye geç, "
+            "sonra Cookie-Editor ile dışa aktarıp şunu çalıştır: "
+            "agent-reach configure xhs-cookies."
         )

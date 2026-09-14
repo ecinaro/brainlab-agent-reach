@@ -34,8 +34,10 @@ def _search_api_ok() -> bool:
 
 class BilibiliChannel(Channel):
     name = "bilibili"
-    description = "B站视频、字幕和搜索"
-    backends = ["bili-cli", "OpenCLI", "B站搜索 API"]
+    description = "Bilibili videoları, altyazıları ve arama"
+    backends = ["bili-cli", "OpenCLI", "Bilibili Search API"]
+    # Pre-localization name kept so existing `bilibili_backend` overrides still match.
+    backend_aliases = {"B站搜索 API": "Bilibili Search API"}
     tier = 1
 
     def can_handle(self, url: str) -> bool:
@@ -59,7 +61,7 @@ class BilibiliChannel(Channel):
                 continue
             findings.append((backend, *result))
 
-        # 有后端断链时，即使别的候选兜底成功也要把处方带出来
+        # If a backend is broken, surface its fix even when another candidate works
         broken_notes = [m for _, s, m in findings if s == "error"]
 
         for wanted in ("ok", "warn"):
@@ -67,16 +69,18 @@ class BilibiliChannel(Channel):
                 if status == wanted:
                     self.active_backend = backend if status == "ok" else None
                     if broken_notes:
-                        message += "\n[备选后端异常] " + "；".join(broken_notes)
+                        message += "\n[Yedek backend hatası] " + "; ".join(broken_notes)
                     return status, message
 
         if findings:
             return "error", "\n".join(m for _, _, m in findings)
 
         return "off", (
-            "没有可用的 B站后端（搜索 API 也不可达，可能是网络问题）。推荐：\n"
-            "  pipx install bilibili-cli（搜索/热门/视频详情，无需登录）\n"
-            "  或桌面装 OpenCLI（额外解锁字幕）：agent-reach install --system --channels opencli"
+            "Kullanılabilir Bilibili backend'i yok (arama API'sine de ulaşılamıyor, "
+            "ağ sorunu olabilir). Önerilen:\n"
+            "  pipx install bilibili-cli (arama/popüler/video detayı, giriş gerekmez)\n"
+            "  veya masaüstünde OpenCLI kur (altyazıları da açar): "
+            "agent-reach install --system --channels opencli"
         )
 
     def _check_bili_cli(self):
@@ -85,12 +89,15 @@ class BilibiliChannel(Channel):
         if probe.status == "missing":
             return None
         if probe.status == "broken":
-            return "error", "bili 命令存在但无法执行\n" + probe.hint
+            return "error", "bili komutu var ama çalıştırılamıyor\n" + probe.hint
         if not probe.ok:
-            return "warn", f"bili-cli 探测失败（{probe.status}），运行 `bili status` 查看详情"
+            return "warn", (
+                f"bili-cli yoklaması başarısız ({probe.status}), "
+                "ayrıntılar için `bili status` çalıştır"
+            )
         return "ok", (
-            "bili-cli 可用（搜索/热门/排行/视频详情/音频，无需登录；"
-            "字幕需 OpenCLI。上游 2026-03 起停更）"
+            "bili-cli kullanılabilir (arama/popüler/sıralama/video detayı/ses, giriş gerekmez; "
+            "altyazılar için OpenCLI gerekli. Upstream 2026-03'ten beri güncellenmiyor)"
         )
 
     def _check_opencli(self):
@@ -104,8 +111,9 @@ class BilibiliChannel(Channel):
             return "error", st.hint
         if st.ready:
             return "warn", (
-                "OpenCLI 桥接已连接，但 Bilibili 页面、登录态和实际命令"
-                "未实时验证；Doctor 不执行平台命令，因此当前不标记为可用。"
+                "OpenCLI köprüsü bağlı, ancak Bilibili sayfaları, giriş durumu ve gerçek "
+                "komutlar canlı doğrulanmadı; Doctor platform komutu çalıştırmadığı için "
+                "kanal şimdilik kullanılabilir olarak işaretlenmiyor."
             )
         return "warn", st.hint
 
@@ -114,6 +122,6 @@ class BilibiliChannel(Channel):
         if not _search_api_ok():
             return None
         return "ok", (
-            "B站搜索 API 可达（仅搜索，curl 直连）。"
-            "完整功能建议安装 bili-cli：pipx install bilibili-cli"
+            "Bilibili arama API'sine ulaşılabiliyor (yalnızca arama, doğrudan curl). "
+            "Tüm özellikler için bili-cli kur: pipx install bilibili-cli"
         )

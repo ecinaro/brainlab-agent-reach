@@ -38,7 +38,7 @@ def _has_js_runtime_config(config_path) -> bool:
 
 class YouTubeChannel(Channel):
     name = "youtube"
-    description = "YouTube 视频和字幕"
+    description = "YouTube videoları ve altyazıları"
     backends = ["yt-dlp"]
     tier = 0
 
@@ -48,29 +48,29 @@ class YouTubeChannel(Channel):
         return host_matches(url, "youtube.com", "youtu.be")
 
     def check(self, config=None):
-        # 真跑 yt-dlp --version 探活，区分未装 / venv 断链 / 跑不动
+        # Really run yt-dlp --version: distinguish missing / broken venv / cannot run
         probe = probe_command("yt-dlp", ["--version"], timeout=10, package="yt-dlp")
         if probe.status == "missing":
             self.active_backend = None
-            return "off", f"yt-dlp 未安装。安装：{_YTDLP_UPGRADE_COMMAND}"
+            return "off", f"yt-dlp kurulu değil. Kurulum: {_YTDLP_UPGRADE_COMMAND}"
         if probe.status == "broken":
             self.active_backend = None
             return "error", (
-                "yt-dlp 已安装但无法执行。重装（含 JS 支持）：\n"
+                "yt-dlp kurulu ama çalıştırılamıyor. Yeniden kur (JS desteğiyle):\n"
                 f"  {_YTDLP_UPGRADE_COMMAND}\n{probe.hint}"
             )
-        if not probe.ok:  # timeout / error：装了但跑不动
+        if not probe.ok:  # timeout / error: installed but cannot run
             self.active_backend = None
             detail = probe.hint or probe.output or probe.status
-            return "error", f"yt-dlp 无法正常运行：{detail}"
-        # yt-dlp 本体是活的；后面的 JS runtime/转写检查只影响 ok/warn，不影响后端归属
+            return "error", f"yt-dlp düzgün çalışmıyor: {detail}"
+        # yt-dlp itself works; the JS runtime/transcription checks below only affect ok/warn
         self.active_backend = "yt-dlp"
         # Check JS runtime
         has_js = shutil.which("deno") or shutil.which("node")
         if not has_js:
             return "warn", (
-                "yt-dlp 已安装但缺少 JS runtime（YouTube 必须）。\n"
-                "  安装 Node.js 或 deno，然后运行：agent-reach install --system"
+                "yt-dlp kurulu ama JS runtime eksik (YouTube için zorunlu).\n"
+                "  Node.js veya deno kur, sonra çalıştır: agent-reach install --system"
             )
         # Check yt-dlp config for --js-runtimes
         # Deno works out of the box; Node.js requires explicit config
@@ -81,20 +81,20 @@ class YouTubeChannel(Channel):
                 version = _parse_ytdlp_version(probe.output)
                 if version is None:
                     return "warn", (
-                        "无法确认 yt-dlp 版本是否支持 JS runtime 配置。"
-                        "请先升级并重新运行 doctor：\n"
+                        "yt-dlp sürümünün JS runtime yapılandırmasını destekleyip desteklemediği "
+                        "doğrulanamadı. Önce güncelle ve doctor'ı yeniden çalıştır:\n"
                         f"  {_YTDLP_UPGRADE_COMMAND}"
                     )
                 if version < _JS_RUNTIMES_SUPPORTED_FROM:
                     return "warn", (
-                        "yt-dlp 版本过旧，不支持 JS runtime 配置。请先升级并重新运行 doctor：\n"
+                        "yt-dlp sürümü çok eski, JS runtime yapılandırmasını desteklemiyor. Önce güncelle ve doctor'ı yeniden çalıştır:\n"
                         f"  {_YTDLP_UPGRADE_COMMAND}"
                     )
                 return "warn", (
-                    f"yt-dlp 已安装但未配置 JS runtime。运行：\n  {render_ytdlp_fix_command()}"
+                    f"yt-dlp kurulu ama JS runtime yapılandırılmamış. Çalıştır:\n  {render_ytdlp_fix_command()}"
                 )
         # Surface transcription readiness so `doctor` reports it.
-        msg = "可提取视频信息和字幕"
+        msg = "Video bilgisi ve altyazılar alınabilir"
         if config is not None:
             providers = []
             if config.is_configured("groq_whisper"):
@@ -109,12 +109,12 @@ class YouTubeChannel(Channel):
                 ]
                 if missing_media_tools:
                     msg += (
-                        "（音频转写需安装 "
-                        + "、".join(missing_media_tools)
-                        + "）"
+                        " (ses transkripsiyonu için şunları kur: "
+                        + ", ".join(missing_media_tools)
+                        + ")"
                     )
                 else:
-                    msg += f"，可转写音频（{'/'.join(providers)}）"
+                    msg += f", ses transkripsiyonu yapılabilir ({'/'.join(providers)})"
         return "ok", msg
 
     def transcribe(
