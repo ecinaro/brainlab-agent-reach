@@ -35,8 +35,8 @@ class TestCLI:
             return_value={
                 "web": {
                     "status": "ok",
-                    "name": "网页",
-                    "message": "可用",
+                    "name": "Web",
+                    "message": "kullanılabilir",
                     "tier": 0,
                     "backends": ["Jina Reader"],
                     "active_backend": "Jina Reader",
@@ -44,7 +44,7 @@ class TestCLI:
             },
         ), patch(
             "agent_reach.doctor.format_report",
-            return_value="Agent Reach\n✅ 网页可用",
+            return_value="Agent Reach\n✅ Web kullanılabilir",
         ), patch("sys.argv", ["agent-reach", "doctor"]):
             main()
         captured = capsys.readouterr()
@@ -181,8 +181,8 @@ class TestCLI:
         )
 
         output = capsys.readouterr().out
-        assert "未实时验证" in output
-        assert "不会执行 `twitter status`" in output
+        assert "canlı doğrulanmadı" in output
+        assert "`twitter status` çalıştırılmaz" in output
         assert cli.os.environ["TWITTER_AUTH_TOKEN"] == "shell-auth"
         assert cli.os.environ["TWITTER_CT0"] == "shell-ct0"
 
@@ -212,7 +212,7 @@ class TestCLI:
         assert "✅ rdt-cli installed" in out
 
     def test_install_reddit_deps_routes_by_environment(self, monkeypatch):
-        """桌面 → OpenCLI;服务器 → rdt-cli(钉 git 源)。"""
+        """Desktop -> OpenCLI; server -> rdt-cli (pinned git source)."""
         calls = []
         monkeypatch.setattr(cli, "_install_opencli_deps", lambda: calls.append("opencli"))
         monkeypatch.setattr(cli, "_install_rdt_cli", lambda: calls.append("rdt"))
@@ -308,9 +308,46 @@ class TestCLI:
         )
 
         out = capsys.readouterr().out
-        assert "服务器环境跳过：facebook, instagram, opencli" in out
+        assert "sunucu ortamında atlandı: facebook, instagram, opencli" in out
         assert "[dry-run] Would install optional channels: bilibili" in out
         assert "facebook, instagram, opencli, bilibili" not in out
+
+    def _install_web(self, monkeypatch, env):
+        calls = []
+        monkeypatch.setattr(cli, "_install_system_deps", lambda: None)
+        monkeypatch.setattr(cli, "_install_mcporter", lambda: None)
+        monkeypatch.setattr(cli, "_install_opencli_deps", lambda: calls.append("opencli"))
+        monkeypatch.setattr(cli, "_install_skill", lambda: None)
+        monkeypatch.setattr("agent_reach.doctor.check_all", lambda config: {})
+        monkeypatch.setattr("agent_reach.doctor.format_report", lambda results: "report")
+        cli._cmd_install(
+            Namespace(
+                env=env,
+                proxy="",
+                system=True,
+                safe=False,
+                dry_run=False,
+                channels="web",
+            )
+        )
+        return calls
+
+    def test_install_web_only_suggests_opencli_fallback(self, monkeypatch, capsys):
+        calls = self._install_web(monkeypatch, "local")
+
+        out = capsys.readouterr().out
+        # Zero-config web never triggers an npm install on its own.
+        assert calls == []
+        tip_lines = [line for line in out.splitlines() if "Jina Reader" in line]
+        assert len(tip_lines) == 1
+        assert "agent-reach install --system --channels opencli" in tip_lines[0]
+
+    def test_install_web_on_server_skips_opencli_suggestion(self, monkeypatch, capsys):
+        calls = self._install_web(monkeypatch, "server")
+
+        out = capsys.readouterr().out
+        assert calls == []
+        assert "--channels opencli" not in out
 
 
 class TestCheckUpdateRetry:
@@ -392,8 +429,8 @@ class TestCheckUpdateRetry:
 
         captured = capsys.readouterr()
         assert result == "error"
-        assert "网络超时" in captured.out
-        assert "已重试 3 次" in captured.out
+        assert "ağ zaman aşımı" in captured.out
+        assert "3 kez denendi" in captured.out
 
 
 class TestVersionCompare:
@@ -404,7 +441,7 @@ class TestVersionCompare:
         assert cli._is_newer_version("1.5.0", "1.5.0") is False
 
     def test_local_ahead_of_release_no_downgrade_prompt(self):
-        """发版窗口期本地装了 main(更新)时,不能提示"有更新"诱导降级。"""
+        """A local main build ahead of the release must not prompt a downgrade."""
         assert cli._is_newer_version("1.4.2", "1.5.0") is False
 
     def test_unparseable_falls_back_to_inequality(self):
@@ -414,7 +451,7 @@ class TestVersionCompare:
 
 class TestWatchVersionCompare:
     def test_watch_does_not_prompt_downgrade(self, monkeypatch, capsys):
-        """watch 与 check-update 同语义:本地领先远端 release 时不提示更新。"""
+        """watch matches check-update: no update prompt when local is ahead of the release."""
         class R:
             status_code = 200
             headers = {}
@@ -426,10 +463,10 @@ class TestWatchVersionCompare:
         monkeypatch.setattr(cli, "_github_get_with_retry", lambda *a, **k: (R(), None, 1))
         monkeypatch.setattr(
             "agent_reach.doctor.check_all",
-            lambda config: {"web": {"status": "ok", "name": "任意网页", "message": "ok",
+            lambda config: {"web": {"status": "ok", "name": "Herhangi bir web sayfası", "message": "ok",
                             "tier": 0, "backends": ["Jina Reader"], "active_backend": "Jina Reader"}},
         )
         cli._cmd_watch()
         out = capsys.readouterr().out
-        assert "新版本可用" not in out
-        assert "全部正常" in out
+        assert "Yeni sürüm mevcut" not in out
+        assert "her şey yolunda" in out

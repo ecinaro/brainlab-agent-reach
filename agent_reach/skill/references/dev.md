@@ -1,21 +1,22 @@
-# 开发工具
+# Geliştirici araçları
 
-GitHub CLI 
+GitHub CLI
 
 ## GitHub (gh CLI)
 
-GitHub 官方命令行工具，用于仓库、Issue、PR、Actions、Release 以及 API 访问。
+GitHub'ın resmi komut satırı aracı; repolar, Issue'lar, PR'lar, Actions, Release'ler ve API
+erişimi için kullanılır.
 
 ```bash
-# 认证
+# Kimlik doğrulama
 gh auth login
 gh auth status
 
-# 搜索
+# Arama
 gh search repos "query" --sort stars --limit 10
 gh search code "query" --language python
 
-# 仓库
+# Repolar
 gh repo view owner/repo
 gh repo clone owner/repo
 gh repo create my-repo --private
@@ -48,15 +49,18 @@ gh release create v1.0.0
 gh api /user
 gh api repos/owner/repo
 
-# JSON 输出
+# JSON çıktı
 gh issue list --repo owner/repo --json number,title --jq '.[] | "\(.number): \(.title)"'
 ```
 
+> `gh auth login`, kullanıcının kendisinin çalıştırması gereken etkileşimli bir giriş akışıdır;
+> agent olarak otomatikleştirme. `create` / `fork` / `sync` gibi yazma komutlarını yalnızca
+> kullanıcı açıkça istediğinde çalıştır.
 
-## 选择指南
+## Seçim rehberi
 
-| 工具 | 来源 | 用途 |
+| Araç | Kaynak | Kullanım |
 |-----|------|------|
-| gh CLI | agent-reach | Git 操作 |
-| zread | my-mcp-tools | 读仓库内容 |
-| context7 | my-mcp-tools | 查技术文档 |
+| gh CLI | agent-reach | Git işlemleri |
+| zread | my-mcp-tools | Repo içeriğini okuma |
+| context7 | my-mcp-tools | Teknik doküman arama |

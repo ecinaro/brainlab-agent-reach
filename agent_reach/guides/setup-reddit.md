@@ -1,55 +1,57 @@
-# Reddit 配置指南
+# Reddit kurulum rehberi
 
-## 功能说明
+## Ne işe yarar?
 
-Reddit 封锁了几乎所有非浏览器的直接访问（包括数据中心和 ISP 代理 IP），JSON API 返回 403。
+Reddit, tarayıcı dışından gelen neredeyse tüm doğrudan erişimi engeller (veri merkezi ve ISP proxy IP'leri dahil). JSON API 403 döner.
 
-Agent Reach 通过 **rdt-cli** 实现 Reddit 的搜索和阅读功能：
-- **搜索**：`rdt search "关键词"`
-- **阅读完整帖子+评论**：`rdt read POST_ID`
+Agent Reach, Reddit araması ve okuması için **rdt-cli** kullanır:
+- **Arama:** `rdt search "anahtar kelime"`
+- **Gönderi + yorumların tamamını okuma:** `rdt read POST_ID`
 
-免费，无需代理，无需 API Key。需要登录认证（`rdt login`，自动从浏览器提取 Cookie）。
+Ücretsiz; proxy ve API anahtarı gerekmez. Giriş gerekir (`rdt login`, tarayıcıdan Cookie'yi otomatik çeker).
 
-## Agent 可自动完成的步骤
+> Masaüstünde Chrome kullanıyorsan **OpenCLI** daha kolay bir yoldur: Chrome'da reddit.com'a giriş yapman yeterli. Kurulum: `agent-reach install --env=auto --system --channels=opencli`, sonra `opencli reddit search "anahtar kelime" -f yaml`. Detay: [docs/opencli-chrome-kurulum.md](../../docs/opencli-chrome-kurulum.md)
 
-1. 检查 rdt-cli 是否可用：
+## Ajanın kendi yapabileceği adımlar
+
+1. rdt-cli kurulu mu kontrol et:
 ```bash
 which rdt && echo "installed" || echo "not installed"
 ```
 
-2. 如果未安装，自动安装（PyPI 版本暂时落后，从 GitHub 安装最新版）：
+2. Kurulu değilse kur (PyPI sürümü şimdilik geride, en yeni sürümü GitHub'dan kur):
 ```bash
 pipx install 'git+https://github.com/public-clis/rdt-cli.git'
 ```
 
-或一键安装：
+Ya da tek komutla:
 ```bash
 agent-reach install --env=auto --system --channels=reddit
 ```
 
-## 使用示例
+## Kullanım örnekleri
 
-搜索 Reddit 内容：
+Reddit'te ara:
 ```bash
 rdt search "python best practices" -n 5
 ```
 
-阅读完整帖子和评论：
+Gönderiyi ve yorumları tamamen oku:
 ```bash
 rdt read POST_ID
 ```
 
-## 需要用户手动做的步骤
+## Kullanıcının elle yapması gerekenler
 
-无。用户明确授权后，rdt-cli 通过
-`agent-reach install --env=auto --system --channels=reddit` 安装。
+Hiçbir şey. Kullanıcı açıkça izin verdikten sonra rdt-cli
+`agent-reach install --env=auto --system --channels=reddit` ile kurulur.
 
-## Fallback：Exa 搜索
+## Yedek: Exa araması
 
-如果你已经配置了 Exa（通过 mcporter），也可以通过 Exa 搜索 Reddit 内容：
+Exa'yı (mcporter üzerinden) zaten ayarladıysan Reddit içeriğini Exa ile de arayabilirsin:
 
 ```bash
 mcporter call exa.web_search_exa query="site:reddit.com python best practices" numResults=5
 ```
 
-rdt-cli 是当前推荐方案，无需额外配置即可使用。
+rdt-cli şu an önerilen yoldur, ek ayar gerekmeden çalışır.

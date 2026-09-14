@@ -1,33 +1,124 @@
-# 常见问题排查
+# Sık karşılaşılan sorunlar
 
-## 雪球 / Xueqiu: API 返回 400
+Önce her zaman şunu çalıştır:
 
-**症状：** `agent-reach doctor` 显示雪球 ⚠️，报 `HTTP Error 400`
+```bash
+agent-reach doctor
+```
 
-**原因：** 雪球 API 需要登录 Cookie，无法通过匿名访问获取。
+Hangi kanalın bozuk olduğunu ve çoğu zaman nasıl düzeleceğini söyler.
 
-**解决方案：** 在 Chrome 里登录 xueqiu.com，然后运行：
+---
+
+## OpenCLI: çıkış kodu 69 (Browser Bridge bağlı değil)
+
+**Belirti:** `opencli ...` komutu 69 koduyla bitiyor ya da `opencli doctor` eklentiyi bağlı göstermiyor.
+
+**Neden:** Chrome kapalı, OpenCLI eklentisi kurulu değil ya da kapalı.
+
+**Çözüm:**
+
+1. Chrome'u aç ve açık bırak.
+2. `chrome://extensions` sayfasına git, OpenCLI eklentisinin **açık** olduğundan emin ol. Yoksa kur: https://chromewebstore.google.com/detail/opencli/ildkmabpimmkaediidaifkhjpohdnifk
+3. Tekrar kontrol et:
+
+```bash
+opencli doctor
+```
+
+---
+
+## OpenCLI: çıkış kodu 77 (giriş yapılmamış)
+
+**Belirti:** Komut 77 koduyla bitiyor, "giriş gerekli" / AUTH_REQUIRED benzeri bir mesaj var.
+
+**Neden:** O siteye Chrome'da giriş yapılmamış ya da oturum süresi dolmuş.
+
+**Çözüm:** Chrome'da siteye **kendin** giriş yap, sonra komutu tekrar çalıştır. Ajan senin yerine giriş yapmaz, şifre istemez, captcha çözmez.
+
+---
+
+## OpenCLI: çıkış kodu 75 (zaman aşımı)
+
+**Belirti:** Komut 75 koduyla bitiyor.
+
+**Neden:** Sayfa zamanında yüklenmedi ya da Chrome meşgul/takılı.
+
+**Çözüm:** Biraz bekleyip tekrar dene. Chrome'da takılı bir sekme ya da açılır pencere olup olmadığına bak. Olmazsa servisi yeniden başlat:
+
+```bash
+opencli daemon status
+opencli daemon restart
+```
+
+---
+
+## OpenCLI: `attach failed: chrome-extension://...`
+
+**Neden:** Başka bir eklenti (ör. 1Password) Chrome'un hata ayıklayıcısını kullanıyor ve OpenCLI'ın bağlanmasını engelliyor.
+
+**Çözüm:** O eklentiyi `chrome://extensions` sayfasından geçici olarak kapat, komutu tekrar dene.
+
+---
+
+## OpenCLI: komut bulunamadı / Windows'ta npm hatası
+
+**Belirti:** `opencli: command not found` ya da PowerShell "betik çalıştırma devre dışı" diyor.
+
+**Çözüm:**
+
+- Node.js 20+ kurulu mu bak: `node -v`
+- Kur: `npm install -g @jackwener/opencli`
+- Windows PowerShell betik hatası verirse `npm.cmd install -g @jackwener/opencli` kullan.
+- Terminali kapatıp aç. Hâlâ bulunamıyorsa `npm root -g` ile global klasörü bul ve PATH'e ekle.
+
+Detaylı kurulum: [opencli-chrome-kurulum.md](opencli-chrome-kurulum.md)
+
+---
+
+## Bir site okunmuyor (Cloudflare, giriş duvarı, boş sayfa)
+
+**Belirti:** `curl https://r.jina.ai/URL` boş, "Just a moment..." (Cloudflare), captcha ya da 401/403/429 dönüyor.
+
+**Çözüm:** OpenCLI yedeğini kullan (masaüstü + Chrome gerekir):
+
+```bash
+opencli web read --url https://ornek.com/sayfa --stdout
+```
+
+Hâlâ giriş istiyorsa Chrome'da o siteye kendin giriş yap. Ajanın karar sırası: [opencli-fallback.md](../agent_reach/skill/references/opencli-fallback.md)
+
+---
+
+## Xueqiu: API 400 döndürüyor
+
+**Belirti:** `agent-reach doctor` Xueqiu için ⚠️ gösteriyor, `HTTP Error 400` hatası var.
+
+**Neden:** Xueqiu API'si giriş Cookie'si istiyor, anonim erişimle veri alınamıyor.
+
+**Çözüm:** Chrome'da xueqiu.com'a giriş yap, sonra çalıştır:
 
 ```bash
 agent-reach configure --from-browser chrome --platform xueqiu
 ```
 
-再次运行 `agent-reach doctor` 确认恢复 ✅。Cookie 过期后重新运行即可。
+`agent-reach doctor` ile ✅ olduğunu doğrula. Cookie süresi dolunca komutu tekrar çalıştır.
 
 ---
 
-## Twitter/X: twitter-cli 连接失败
+## Twitter/X: twitter-cli bağlanamıyor
 
-**症状：** `twitter search` 或其他命令返回错误
+**Belirti:** `twitter search` ya da başka komutlar hata veriyor.
 
-**原因：** twitter-cli 需要 `TWITTER_AUTH_TOKEN` 和 `TWITTER_CT0`
-环境变量才能访问 Twitter API。`agent-reach configure twitter-cookies`
-保存的值只供 doctor 检查配置是否齐全；doctor 不执行上游认证，也不会设置当前
-Shell。如果你的网络环境需要代理才能访问 x.com，还需要配置代理。
+**Neden:** twitter-cli, Twitter API'sine erişmek için `TWITTER_AUTH_TOKEN` ve `TWITTER_CT0`
+ortam değişkenlerine ihtiyaç duyar. `agent-reach configure twitter-cookies` ile kaydedilen
+değerler sadece doctor'ın ayarların tam olup olmadığını kontrol etmesi içindir; doctor
+üst akıştaki kimlik doğrulamayı çalıştırmaz ve mevcut Shell'i ayarlamaz. Ağın x.com'a
+erişmek için proxy gerektiriyorsa proxy de ayarlaman gerekir.
 
-**解决方案：**
+**Çözüm:**
 
-### 方案 1：设置环境变量代理
+### Yol 1: Ortam değişkeni ile proxy
 
 ```bash
 export TWITTER_AUTH_TOKEN="..."
@@ -37,31 +128,35 @@ export HTTPS_PROXY="http://user:pass@host:port"
 twitter search "test" -n 1
 ```
 
-### 方案 2：使用全局代理工具
+### Yol 2: Genel proxy aracı
 
-让代理工具接管所有网络流量，这样 twitter-cli 的请求也会走代理：
+Tüm ağ trafiğini proxy aracına devret; böylece twitter-cli istekleri de proxy'den geçer:
 
 ```bash
-# macOS — ClashX / Surge 开启"增强模式"
-# Linux — proxychains 或 tun2socks
+# macOS — ClashX / Surge "Enhanced Mode" açık
+# Linux — proxychains ya da tun2socks
 proxychains twitter search "test" -n 1
 ```
 
-### 方案 3：不用 twitter-cli，用 Exa 搜索替代
+### Yol 3: twitter-cli yerine Exa araması
 
-twitter-cli 不可用时，可以直接用 Exa 搜索 Twitter 内容：
+twitter-cli çalışmıyorsa Twitter içeriğini doğrudan Exa ile arayabilirsin:
 
 ```bash
-mcporter call exa.web_search_exa query="site:x.com 搜索词" numResults=5
+mcporter call exa.web_search_exa query="site:x.com arama kelimesi" numResults=5
 ```
 
-### 方案 4：检查认证
+### Yol 4: OpenCLI yedeği (masaüstü)
+
+Chrome'da x.com'a giriş yaptıysan OpenCLI de kullanılabilir. Kullanılabilir komutlar için `opencli list` ve `opencli twitter --help`.
+
+### Yol 5: Kimlik doğrulamayı kontrol et
 
 ```bash
 twitter check
 ```
 
-> 如果返回 "Missing credentials"，需要在运行该命令的进程环境中设置
-> `TWITTER_AUTH_TOKEN` 和 `TWITTER_CT0`。
+> "Missing credentials" dönerse, komutu çalıştıran işlemin ortamında
+> `TWITTER_AUTH_TOKEN` ve `TWITTER_CT0` ayarlanmalı.
 >
-> **Fallback：** 如果你已经安装了 bird CLI（`npm install -g @steipete/bird`），它也能正常工作。Agent Reach 会自动检测已安装的工具。
+> **Yedek:** bird CLI kuruluysa (`npm install -g @steipete/bird`) o da çalışır. Agent Reach kurulu araçları kendiliğinden tespit eder.

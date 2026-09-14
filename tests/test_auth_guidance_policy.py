@@ -56,19 +56,33 @@ def test_xiaohongshu_guidance_never_starts_implicit_login():
 
 def test_xiaohongshu_opencli_and_export_boundaries_are_truthful():
     """Cookie import is for MCP/legacy tools, never OpenCLI or Chrome."""
+    # (document, "only an already-existing, user-controlled session",
+    #  "Cookie import never reaches OpenCLI")
     boundary_docs = (
-        ROOT / "docs" / "install.md",
-        ROOT / "agent_reach" / "guides" / "setup-xiaohongshu.md",
-        ROOT / "agent_reach" / "skill" / "references" / "social.md",
+        (
+            ROOT / "docs" / "install.md",
+            "zaten var olan ve kullanıcının açıkça kontrol ettiği",
+            "Cookie'yi OpenCLI'a veya Chrome'a aktarmaz",
+        ),
+        (
+            ROOT / "agent_reach" / "guides" / "setup-xiaohongshu.md",
+            "zaten var olan ve kullanıcının açıkça kontrol ettiği",
+            "Cookie'yi OpenCLI'a veya Chrome'a aktarmaz",
+        ),
+        (
+            ROOT / "agent_reach" / "skill" / "references" / "social.md",
+            "zaten açık ve kendi kontrolündeki",
+            "cookie'leri OpenCLI'a enjekte etmez",
+        ),
     )
-    for path in boundary_docs:
+    for path, existing_session, no_injection in boundary_docs:
         text = path.read_text(encoding="utf-8")
-        assert "已经存在且明确控制" in text, path.relative_to(ROOT)
-        assert "不会把 Cookie 注入 OpenCLI" in text, path.relative_to(ROOT)
+        assert existing_session in text, path.relative_to(ROOT)
+        assert no_injection in text, path.relative_to(ROOT)
 
-    xhs_guide = boundary_docs[1].read_text(encoding="utf-8")
-    assert "xiaohongshu.com 同域 Cookie 集" in xhs_guide
-    assert "非 xiaohongshu.com 域 Cookie" in xhs_guide
+    xhs_guide = boundary_docs[1][0].read_text(encoding="utf-8")
+    assert "xiaohongshu.com alan adına ait Cookie seti" in xhs_guide
+    assert "xiaohongshu.com dışındaki alan adlarına ait Cookie'ler" in xhs_guide
 
 
 def test_twitter_operational_docs_explain_the_environment_boundary():
@@ -95,11 +109,12 @@ def test_twitter_operational_docs_explain_the_environment_boundary():
     twitter_guide = (
         ROOT / "agent_reach" / "guides" / "setup-twitter.md"
     ).read_text(encoding="utf-8")
-    assert "不会执行 `twitter status`" in twitter_guide
-    assert "不会修改当前 Shell" in twitter_guide
+    assert "`twitter status` komutunu çalıştırmaz" in twitter_guide
+    assert "mevcut Shell'i değiştirmez" in twitter_guide
     assert "Export → Header String" in twitter_guide
     assert "cookie JSON" not in twitter_guide
     assert "复制全部" not in twitter_guide
+    assert "Tümünü kopyala" not in twitter_guide
 
     for expected in (
         "--sync-legacy-twitter",
@@ -108,8 +123,8 @@ def test_twitter_operational_docs_explain_the_environment_boundary():
         "~/.config/bird/credentials.env",
     ):
         assert expected in twitter_guide
-    assert "默认只写" in twitter_guide
-    assert "不会自动删除" in twitter_guide
+    assert "Varsayılan olarak sadece" in twitter_guide
+    assert "otomatik silmez" in twitter_guide
 
     rendered_as_verified = (
         "✅ Twitter/X tweets",
@@ -164,8 +179,12 @@ def test_public_guidance_never_installs_the_unrelated_pypi_package():
         for line_number, line in enumerate(
             path.read_text(encoding="utf-8").splitlines(), 1
         ):
-            if bare_install.search(line) and (
-                "github.com/Panniantong/agent-reach" not in line
+            if bare_install.search(line) and not any(
+                source in line
+                for source in (
+                    "github.com/Panniantong/agent-reach",  # upstream
+                    "github.com/ecinaro/brainlab-agent-reach",  # this fork
+                )
             ):
                 violations.append(
                     f"{path.relative_to(ROOT)}:{line_number}: {line.strip()}"
@@ -214,7 +233,7 @@ def test_video_reference_has_content_level_youtube_fallbacks():
         ROOT / "agent_reach" / "skill" / "references" / "video.md"
     ).read_text(encoding="utf-8")
     assert "opencli youtube transcript" in text
-    assert "最多重试 3 次" in text
+    assert "en fazla 3 kez yeniden dene" in text
     assert "agent-reach transcribe" in text
 
 

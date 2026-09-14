@@ -1,33 +1,33 @@
-# 网页阅读
+# Web okuma
 
-通用网页、RSS。
+Genel web sayfaları, RSS.
 
-## 通用网页 (Jina Reader)
+## Genel web sayfaları (Jina Reader)
 
 ```bash
-# 读取任意网页内容
+# Herhangi bir web sayfasının içeriğini oku (Windows PowerShell'de: curl.exe)
 curl -s "https://r.jina.ai/URL"
 
-# 示例
+# Örnek
 curl -s "https://r.jina.ai/https://example.com/article"
 ```
 
-**适用场景**: 大多数网页可以直接用 Jina Reader 读取。
+**Uygun senaryo**: Web sayfalarının çoğu doğrudan Jina Reader ile okunabilir.
 
 ## Web Reader (MCP)
 
 ```bash
-# 读取网页内容 (Markdown 格式)
+# Web sayfası içeriğini oku (Markdown formatında)
 mcporter call web-reader.webReader url="https://example.com"
 
-# 保留图片
+# Görselleri koru
 mcporter call web-reader.webReader url="https://example.com" retain_images=true
 
-# 纯文本格式
+# Düz metin formatı
 mcporter call web-reader.webReader url="https://example.com" return_format="text"
 ```
 
-**适用场景**: 需要更精确控制输出格式时使用。
+**Uygun senaryo**: Çıktı formatı üzerinde daha hassas kontrol gerektiğinde.
 
 ## RSS (feedparser)
 
@@ -39,12 +39,23 @@ for e in feedparser.parse('FEED_URL').entries[:5]:
 "
 ```
 
-**适用场景**: 订阅博客、新闻源、播客等 RSS feed。
+**Uygun senaryo**: Blog, haber kaynağı, podcast gibi RSS feed'lerini takip etmek.
 
-## 选择指南
+## Okunamıyorsa → OpenCLI yedeği
 
-| 场景 | 推荐工具 |
+401/403/429, Cloudflare "Just a moment", captcha, giriş duvarı veya boş / yalnızca JS iskeleti
+dönerse içerik uydurma; [opencli-fallback.md](opencli-fallback.md) merdivenini izle. En kısa yol:
+
+```bash
+opencli doctor
+opencli web read --url "<url>" --stdout
+```
+
+## Seçim rehberi
+
+| Senaryo | Önerilen araç |
 |-----|---------|
-| 通用网页 | Jina Reader (`curl r.jina.ai`) |
-| 需要图片/格式控制 | web-reader MCP |
-| RSS 订阅 | feedparser |
+| Genel web sayfası | Jina Reader (`curl r.jina.ai`) |
+| Görsel / format kontrolü gerekiyor | web-reader MCP |
+| RSS takibi | feedparser |
+| Giriş / Cloudflare / captcha / JS yüzünden okunamıyor | OpenCLI yedeği ([opencli-fallback.md](opencli-fallback.md)) |

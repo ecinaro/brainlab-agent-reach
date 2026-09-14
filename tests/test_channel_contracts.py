@@ -97,6 +97,25 @@ def test_ordered_backends_override_moves_backend_to_front():
     assert ordered_unknown == list(ch.backends)
 
 
+def test_legacy_chinese_backend_overrides_still_apply():
+    """Pre-localization backend names in <channel>_backend keep working."""
+    from agent_reach.channels.bilibili import BilibiliChannel
+    from agent_reach.channels.xueqiu import XueqiuChannel
+
+    bili = BilibiliChannel()
+    assert bili.ordered_backends({"bilibili_backend": "B站搜索 API"})[0] == (
+        "Bilibili Search API"
+    )
+    assert bili.ordered_backends({"bilibili_backend": "Bilibili Search API"})[0] == (
+        "Bilibili Search API"
+    )
+
+    # Every alias must point at a backend that still exists.
+    for channel in (bili, XueqiuChannel()):
+        for legacy, current in channel.backend_aliases.items():
+            assert current in channel.backends, (channel.name, legacy)
+
+
 def test_youtube_warns_when_node_only_and_no_config(monkeypatch, tmp_path):
     """YouTube should warn when only Node.js is installed but no yt-dlp config exists."""
     from agent_reach.channels.youtube import YouTubeChannel
@@ -117,7 +136,7 @@ def test_youtube_warns_when_node_only_and_no_config(monkeypatch, tmp_path):
     status, message = ch.check()
     assert status == "warn"
     assert "--js-runtimes" in message
-    assert ch.active_backend == "yt-dlp"  # 本体活着，warn 只关乎 JS runtime
+    assert ch.active_backend == "yt-dlp"  # the binary works; warn is only about the JS runtime
 
 
 def test_youtube_warns_with_windows_specific_fix_command(monkeypatch, tmp_path):

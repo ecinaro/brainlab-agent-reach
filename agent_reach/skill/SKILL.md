@@ -1,142 +1,190 @@
 ---
 name: agent-reach
 description: >
-  MUST USE when user wants to 调研/research/搜索/search/查/找/look up anything
-  on the internet — e.g. 全网调研 X / 帮我调研一下 X / 查一下 X / 搜搜 X /
-  看看大家怎么评价 X / X 上有什么讨论 / research this topic。
+  İnternette bir şey araştırmak/aramak/bakmak istendiğinde MUTLAKA kullan —
+  "şunu araştır", "internette ara", "X hakkında ne diyorlar", "bu linke bak",
+  "bu videoyu özetle", "X'i derinlemesine incele".
 
-  Also MUST USE when user mentions any platform or shares any URL/链接:
-  小红书/xiaohongshu/xhs, Twitter/推特/X, B站/bilibili, Reddit, Facebook,
-  Instagram, V2EX, LinkedIn/领英/招聘/求职/jobs, YouTube, GitHub code search, 小宇宙播客,
-  雪球/股票行情, RSS feeds, or any web URL.
+  Ayrıca kullanıcı herhangi bir platformdan bahsettiğinde veya URL/link
+  paylaştığında MUTLAKA kullan: Twitter/X, Reddit, Facebook, Instagram, YouTube,
+  GitHub, Bilibili, XiaoHongShu, Xiaoyuzhou, LinkedIn/iş ilanları, V2EX,
+  Xueqiu (hisse), RSS.
 
-  15 platforms, multi-backend routing (OpenCLI / per-platform CLIs / APIs).
-  Zero config for 6 channels. Run `agent-reach doctor --json` to see which
-  backend serves each platform right now.
+  15 platform, çoklu backend yönlendirmesi (OpenCLI / platform CLI'ları / API'ler).
+  6 kanal kurulumsuz çalışır. Hangi platforma şu an hangi backend'in hizmet
+  verdiğini görmek için `agent-reach doctor --json` çalıştır. Normal yolla
+  erişilemeyen (giriş/Cloudflare/captcha/JS) siteler için OpenCLI ile
+  kullanıcının Chrome oturumundan okur.
 
-  NOT for: 写报告/数据分析/翻译等内容加工（本 skill 只负责从互联网获取内容）；
-  发帖/评论/点赞等写操作；已有专门 skill 的平台（先用专门 skill）。
-
-  【路由方式】SKILL.md 包含路由表和常用命令，复杂场景需按需阅读对应分类的 references/*.md。
-  分类：search / social (小红书/推特/B站/V2EX/Reddit/Facebook/Instagram) / career(LinkedIn) / dev(github) / web(网页/文章/RSS) / video(YouTube/B站/播客) / finance(雪球/股票)。
+  NE İÇİN DEĞİL: rapor yazmak/analiz/çeviri (bu skill sadece içerik çeker);
+  paylaşım/yorum/beğeni gibi yazma işlemleri; kendi skill'i kurulu platformlar
+  (önce o skill'i kullan).
 metadata:
-  homepage: https://github.com/Panniantong/Agent-Reach
+  homepage: https://github.com/ecinaro/brainlab-agent-reach
 ---
 
-# Agent Reach — 互联网能力路由器
+# Agent Reach — internet erişim yönlendiricisi
 
-15 平台、多后端。**本 skill 存在时必须用它访问这些平台，不要自己发明方案。**
+15 platform, her biri için birden fazla backend. **Bu skill varken bu
+platformlara onunla eriş — kendi yöntemini icat etme.**
 
-## 常驻规则（全程适用）
+## Kalıcı kurallar (oturum boyunca geçerli)
 
-1. **动手前先体检**：多后端/登录态平台（小红书/Reddit/B站/Twitter/Facebook/Instagram）先跑
-   `agent-reach doctor --json`。`active_backend` 有值时按它选命令组；`active_backend: null`
-   表示 Doctor 为避免触发浏览器 Cookie 读取或远端写入而没有做实时验证，不代表后端不存在。
-   只有用户任务明确需要该平台时，才按对应 reference 的只读命令手动验证。
-2. **声明你在用什么**：开始干活前说一句「使用 agent-reach 的 X 平台 / Y 后端」。
-3. **失败按 references 里的重试链处理**，不要瞎猜命令。
-4. **全网调研类任务**：组合多平台（Exa 搜索 + Twitter/Reddit 看讨论 + 小红书/B站看中文场景），并行收集再汇总。
-5. **替用户盯版本**：完成一次较大的调研/多平台任务后，顺手跑
-   `agent-reach check-update`（很快，一个 API 调用）。有新版就在收尾汇报里附一句：
-   「Agent Reach 有新版 vX.Y.Z，复制这句话给我即可更新：帮我更新 Agent Reach：
-   https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/update.md」。
-   不要中断当前任务去更新，也不要重复提醒同一个版本。
+1. **Harekete geçmeden önce sağlık kontrolü**: çoklu backend'li / giriş gerektiren platformlarda
+   (XiaoHongShu / Reddit / Bilibili / Twitter / Facebook / Instagram) önce
+   `agent-reach doctor --json` çalıştır. `active_backend` doluysa ona göre komut grubunu seç;
+   `active_backend: null`, Doctor'ın tarayıcı cookie'si okumamak veya uzak yazma yapmamak için
+   canlı testi bilerek atladığı anlamına gelir — backend yok demek değildir. Sadece kullanıcının
+   görevi o platformu gerektiriyorsa ilgili referanstaki salt-okunur komutla doğrula.
+2. **Ne kullandığını söyle**: başlamadan önce "agent-reach ile X platformu, Y backend'i
+   üzerinden" de.
+3. **Hata olursa references/ içindeki yeniden deneme zincirlerini izle** — komut uydurma.
+4. **Geniş araştırma görevlerinde**: platformları birleştir (web araması için Exa +
+   tartışmalar için Twitter/Reddit + Çince bakış açısı için XiaoHongShu/Bilibili),
+   paralel topla, sonra sentezle.
+5. **Sürümü kullanıcı için takip et**: kapsamlı bir çok platformlu görevi bitirince
+   `agent-reach check-update` çalıştır (hızlı, tek API çağrısı). Yeni sürüm varsa kapanış
+   mesajına tek satır ekle: "Agent Reach vX.Y.Z çıktı — güncellemek için bunu bana yapıştır:
+   Agent Reach'i güncelle: https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/update.md".
+   Güncellemek için mevcut görevi yarıda kesme; aynı sürüm için iki kez hatırlatma.
+6. **Sayfa okunamıyorsa pes etme**: 401/403/429, Cloudflare, captcha, giriş duvarı veya boş
+   içerikte [OpenCLI yedeği](references/opencli-fallback.md) merdivenini izle.
 
-## 路由表
+## Yönlendirme tablosu
 
-| 用户意图 | 分类 | 详细文档 |
+| Kullanıcı niyeti | Kategori | Ayrıntı |
 |---------|------|---------|
-| 网页搜索/代码搜索 | search | [references/search.md](references/search.md) |
-| 小红书/推特/B站/V2EX/Reddit/Facebook/Instagram | social | [references/social.md](references/social.md) |
-| 招聘/职位/LinkedIn | career | [references/career.md](references/career.md) |
-| GitHub/代码 | dev | [references/dev.md](references/dev.md) |
-| 网页/文章/RSS | web | [references/web.md](references/web.md) |
-| YouTube/B站/播客字幕 | video | [references/video.md](references/video.md) |
-| 雪球/股票行情 | finance | [references/finance.md](references/finance.md) |
+| Web / kod araması | search | [references/search.md](references/search.md) |
+| XiaoHongShu / Twitter / Bilibili / V2EX / Reddit / Facebook / Instagram | social | [references/social.md](references/social.md) |
+| İş ilanları / LinkedIn | career | [references/career.md](references/career.md) |
+| GitHub / kod | dev | [references/dev.md](references/dev.md) |
+| Web sayfaları / makaleler / RSS | web | [references/web.md](references/web.md) |
+| YouTube / Bilibili / podcast transkriptleri | video | [references/video.md](references/video.md) |
+| Xueqiu / hisse fiyatları | finance | [references/finance.md](references/finance.md) |
+| Erişilemeyen siteler (giriş / Cloudflare / captcha / JS) | opencli-fallback | [references/opencli-fallback.md](references/opencli-fallback.md) |
 
-## 零配置快速命令
+## Kurulumsuz hızlı komutlar
 
 ```bash
-# Exa 网页搜索
+# Exa web araması
 mcporter call exa.web_search_exa query="query" numResults=5
 
-# 通用网页阅读
+# Herhangi bir web sayfasını oku (Windows PowerShell'de: curl.exe)
 curl -s "https://r.jina.ai/URL"
 
-# GitHub 搜索
+# GitHub araması
 gh search repos "query" --sort stars --limit 10
 
-# YouTube 字幕（注意：B站不要用 yt-dlp，失败重试链见 video.md）
+# YouTube altyazıları (Bilibili için asla yt-dlp kullanma; yeniden deneme zinciri video.md'de)
 yt-dlp --write-sub --write-auto-sub --skip-download -o "/tmp/%(id)s" "URL"
 
-# V2EX 热门
+# V2EX popüler konular
 curl -s "https://www.v2ex.com/api/topics/hot.json" -H "User-Agent: agent-reach/1.0"
 
-# B站搜索（bili-cli，无需登录）
+# Bilibili araması (bili-cli, giriş gerekmez)
 bili search "query" --type video -n 5
 ```
 
-## 需登录态的平台（按 doctor 的 active_backend 选命令）
+## Giriş gerektiren platformlar (doctor'ın active_backend değerine göre seç)
 
-Twitter 注意：`agent-reach configure twitter-cookies` 保存的 Cookie 只供
-`doctor` 检查配置是否齐全；`doctor` 不执行 `twitter status`，也不会设置当前
-Shell。直接运行 `twitter` 前，必须在子进程环境中显式提供
-`TWITTER_AUTH_TOKEN` 和 `TWITTER_CT0`，不得在日志或命令回显中暴露值。
+Twitter sınırı: `agent-reach configure twitter-cookies` ile kaydedilen cookie'ler
+yalnızca `doctor` tarafından açık kimlik bilgilerinin var olup olmadığını kontrol
+etmek için kullanılır. `doctor`, `twitter status` çalıştırmaz ve mevcut shell'i
+yapılandırmaz. `twitter` komutunu doğrudan çağırmadan önce `TWITTER_AUTH_TOKEN` ve
+`TWITTER_CT0` değerlerini alt süreç ortamında açıkça ver; değerlerini asla loglama.
 
-小红书注意：Agent Reach 不替用户登录，也不读取浏览器 Cookie。OpenCLI 只用
-用户已有且明确控制的 Chrome 会话；没有现成会话时不要自动登录，改用
-Cookie-Editor 手工导出后配置 xiaohongshu-mcp / 存量工具。
+XiaoHongShu sınırı: Agent Reach kullanıcı adına giriş yapmaz ve tarayıcı
+cookie'lerini okumaz. OpenCLI yalnızca kullanıcının zaten açık ve kendi kontrolündeki
+Chrome oturumunu kullanabilir. Böyle bir oturum yoksa girişi otomatikleştirme;
+bunun yerine Cookie-Editor ile elle dışa aktarıp xiaohongshu-mcp veya eski araçları kullan.
 
 ```bash
-# Twitter 搜索（twitter-cli 首选；失败重试链见 social.md）
+# Twitter araması (twitter-cli tercih edilir; yeniden deneme zinciri social.md'de)
 twitter search "query" -n 10
 
-# Reddit（无零配置路径：OpenCLI 或 rdt-cli，必须登录态）
-opencli reddit search "query" -f yaml   # 桌面
-rdt search "query" --limit 10            # 存量/服务器
+# Reddit (kurulumsuz yol YOK — OpenCLI veya rdt-cli, giriş gerekir)
+opencli reddit search "query" -f yaml   # masaüstü
+rdt search "query" --limit 10            # eski/sunucu
 
-# 小红书（桌面首选 OpenCLI）
+# XiaoHongShu (masaüstünde OpenCLI tercih edilir)
 opencli xiaohongshu search "query" -f yaml
 
-# Facebook / Instagram（桌面 OpenCLI，复用浏览器登录态）
+# Facebook / Instagram (masaüstü OpenCLI, tarayıcı oturumu)
 opencli facebook search "query" -f yaml
 opencli facebook groups -f yaml
-opencli instagram search "query" -f yaml       # 搜用户
-opencli instagram user USERNAME -f yaml        # 读指定用户最近帖子
+opencli instagram search "query" -f yaml       # kullanıcı araması
+opencli instagram user USERNAME -f yaml        # bir kullanıcının son gönderileri
 ```
 
-## 环境检查
+## Erişilemeyen siteler: OpenCLI yedeği
+
+Normal yol (kanalın kendi aracı veya `r.jina.ai`) 401/403/429, Cloudflare "Just a moment",
+captcha, giriş duvarı ya da boş/JS iskeleti döndürürse sırayla dene:
+
+1. `opencli doctor` — exit 69 ise DUR: "Chrome'da OpenCLI eklentisini aç (chrome://extensions) ve tekrar dene."
+2. Adapter var mı: `opencli list -f json` → `opencli <site> --help -f yaml` → `opencli <site> <komut> -f json`
+3. Genel okuyucu: `opencli web read --url "<url>" --stdout` (yavaş SPA'da `--wait 6`)
+4. Tarayıcı oturumu: `opencli browser ara open "<url>" --window background` → `state` → `extract --chunk-size 8000` → her zaman `close`
+5. exit 77 → kullanıcıdan Chrome'da siteye giriş yapmasını iste; exit 75 → bir kez daha bekleyerek dene; exit 66 → içerik gerçekten boş.
+6. Girişi, captcha'yı, 2FA'yı asla otomatikleştirme; salt-okunur kal; içerik uydurma.
+
+Tam merdiven, kurallar ve örnek: [references/opencli-fallback.md](references/opencli-fallback.md)
+
+## Ortam kontrolü
 
 ```bash
-# 检查可用 channel 与每个平台当前激活的后端
+# Kanal durumu + her platforma hangi backend'in hizmet verdiği
 agent-reach doctor --json
 ```
 
-## OpenCLI 适配器发现
+## OpenCLI adapter'larını keşfetme
 
-路由表没有覆盖用户需要的平台或命令时，先用 `opencli list` 查已有适配器，再用
-`opencli <平台> --help` 查看公开命令。发现适配器只证明命令存在，不证明登录态或
-目标内容可用；仅在用户任务明确需要该平台时执行只读命令，并以实际非空内容验收。
+Yönlendirme tablosunda gereken platform veya komut yoksa `opencli list` çalıştır,
+sonra `opencli <platform> --help` ile komutlara bak. Keşif yalnızca adapter'ın var
+olduğunu kanıtlar; kimlik doğrulamanın veya hedef içeriğin çalıştığını kanıtlamaz.
+Salt-okunur komutları yalnızca kullanıcının görevi o platformu gerektirdiğinde çalıştır
+ve boş olmayan içerik gelmesini başarı ölçütü say.
 
-## 工作区规则
+## Çalışma alanı kuralları
 
-**不要在 agent workspace 创建文件。** 使用 `/tmp/` 存放临时输出，`~/.agent-reach/` 存放持久数据。
+**Agent çalışma alanında asla dosya oluşturma.** Geçici çıktılar için `/tmp/`
+(Windows'ta `$env:TEMP`), kalıcı veriler için `~/.agent-reach/` kullan.
 
-## 详细文档
+## Windows notları
 
-根据用户需求，阅读对应的详细文档：
+Referans dokümanlar POSIX shell varsayar. Windows'ta:
 
-- [搜索工具](references/search.md) — Exa AI 搜索
-- [社交媒体](references/social.md) — 小红书, Twitter, B站, V2EX, Reddit, Facebook, Instagram（多后端/登录态命令组）
-- [职场招聘](references/career.md) — LinkedIn
-- [开发工具](references/dev.md) — GitHub CLI
-- [网页阅读](references/web.md) — Jina Reader, RSS
-- [视频播客](references/video.md) — YouTube, B站, 小宇宙
-- [金融行情](references/finance.md) — 雪球股票行情、搜索、热门内容
+- PowerShell'de `curl`, `Invoke-WebRequest` için bir takma addır — açıkça `curl.exe`
+  çağır veya Git Bash kullan (orada düz `curl` çalışır).
+- `/tmp/` yoktur. Geçici çıktılar için `$env:TEMP` (PowerShell) veya oturumun scratchpad
+  dizinini kullan. `~/.agent-reach/`, `C:\Users\<kullanıcı>\.agent-reach\` dizinine karşılık gelir.
+- `agent-reach` CLI bir Python paketidir. `agent-reach doctor --json` "command not found"
+  verirse önce kur: `pip install https://github.com/ecinaro/brainlab-agent-reach/archive/main.zip`
+  ardından `agent-reach install --env=auto`. `--system` bayrağını kullanıcıya sormadan
+  çalıştırma — sistem düzeyinde değişiklik yapar.
+- OpenCLI kullanan platformlar (Reddit, Facebook, Instagram, XiaoHongShu ve OpenCLI yedeği)
+  kullanıcının zaten kontrol ettiği masaüstü Chrome oturumuna ihtiyaç duyar. Girişi asla
+  otomatikleştirme.
+- PowerShell'de URL'leri ve `--wait-for "<css>"` gibi argümanları çift tırnakla ver; `&` içeren
+  URL'leri tırnaksız bırakma.
 
-## 配置渠道
+## Ayrıntılı referanslar
 
-如果某个 channel 需要配置，获取安装指南：
-https://raw.githubusercontent.com/Panniantong/agent-reach/main/docs/install.md
+Ayrıntı gerektiğinde ilgili dosyayı oku (yukarıdaki komutlar yaygın durumları kapsar;
+referanslarda backend bazlı komut grupları, uyarılar ve yeniden deneme zincirleri var):
 
-用户只需提供 cookies，其他配置由 agent 完成。
+- [Arama](references/search.md) — Exa AI araması
+- [Sosyal](references/social.md) — XiaoHongShu, Twitter, Bilibili, V2EX, Reddit, Facebook, Instagram (çoklu backend / giriş gerektiren gruplar)
+- [Kariyer](references/career.md) — LinkedIn
+- [Geliştirici](references/dev.md) — GitHub CLI
+- [Web](references/web.md) — Jina Reader, RSS
+- [Video](references/video.md) — YouTube, Bilibili, Xiaoyuzhou
+- [Finans](references/finance.md) — Xueqiu fiyatları, arama ve piyasa içeriği
+- [OpenCLI yedeği](references/opencli-fallback.md) — giriş / Cloudflare / captcha / JS yüzünden erişilemeyen siteler
+
+## Bir kanalı yapılandırma
+
+Bir kanalın kurulması gerekiyorsa kurulum rehberini çek:
+https://raw.githubusercontent.com/ecinaro/brainlab-agent-reach/main/docs/install.md
+
+Kullanıcı yalnızca cookie'leri verir / eklentiye bir kez tıklar; gerisini agent yapar.
